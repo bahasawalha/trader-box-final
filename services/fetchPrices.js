@@ -3,13 +3,31 @@ const { setPrice } = require("./priceService");
 
 async function fetchCryptoPrices() {
   try {
-    const res = await axios.get("https://api.binance.com/api/v3/ticker/price");
+    const res = await axios.get(
+      "https://api.coingecko.com/api/v3/simple/price",
+      {
+        params: {
+          ids: "bitcoin,ethereum",
+          vs_currencies: "usd"
+        }
+      }
+    );
 
-    res.data.forEach((p) => {
-      setPrice(p.symbol, parseFloat(p.price));
+    const prices = {
+      BTCUSDT: res.data.bitcoin.usd,
+      ETHUSDT: res.data.ethereum.usd
+    };
+
+    // Integration with existing priceService
+    Object.keys(prices).forEach(symbol => {
+      setPrice(symbol, prices[symbol]);
     });
-  } catch (error) {
-    console.error("Error fetching crypto prices:", error.message);
+
+    return prices;
+
+  } catch (err) {
+    console.error("Price fetch error:", err.message);
+    return {};
   }
 }
 
