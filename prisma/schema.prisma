@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================
+// 👤 Users
+// ==========================
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+
+  role          UserRole @default(USER)
+
+  name          String?
+  avatar        String?
+
+  referralCode  String   @unique
+  referredById  String?
+  referredBy    User?    @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals     User[]   @relation("UserReferrals")
+
+  lastWithdrawalAt DateTime?
+  lastIp          String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  wallet        Wallet?
+  subscriptions Subscription[]
+  providerSubs  Subscription[] @relation("ProviderSubscriptions")
+  deposits      Deposit[]
+  withdrawals   Withdrawal[]
+  recommendations Recommendation[]
+  analyses      Analysis[]
+  tickets       Ticket[]
+  messages      TicketMessage[]
+  adminMessages AdminMessage[]
+  auditLogs     AuditLog[]
+}
+
+enum UserRole {
+  USER
+  PROVIDER
+  ANALYST
+  ADMIN
+}
+
+// ==========================
+// 💼 Wallet + 🧾 Ledger
+// ==========================
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  entries   LedgerEntry[]
+}
+
+model LedgerEntry {
+  id            String      @id @default(uuid())
+  walletId      String
+  wallet        Wallet      @relation(fields: [walletId], references: [id])
+  type          LedgerType
+  amount        Float
+  balanceAfter  Float
+  referenceId   String?     // UUID of the source transaction (Deposit/Withdrawal/Sub)
+  createdAt     DateTime    @default(now())
+}
+
+enum LedgerType {
+  DEPOSIT
+  SUBSCRIPTION
+  PROVIDER_EARNING
+  ADMIN_PROFIT
+  WITHDRAWAL
+  REFERRAL_REWARD
+  INTERNAL_TRANSFER
+}
+
+// ==========================
+// 💰 Financial Operations
+// ==========================
+
+model Deposit {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  amount      Float
+  status      FinancialStatus @default(PENDING)
+  method      String
+  reference   String?
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model Withdrawal {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  amount      Float
+  status      FinancialStatus @default(PENDING)
+  method      String
+  address     String
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+}
+
+enum FinancialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ==========================
+// 🛡️ Audit Trail
+// ==========================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  adminId     String
+  admin       User     @relation(fields: [adminId], references: [id])
+  action      String   // e.g., "APPROVE_DEPOSIT", "CHANGE_USER_ROLE"
+  targetId    String?  // ID of the target object
+  details     Json?    // Contextual data
+  ip          String?
+  createdAt   DateTime @default(now())
+}
+
+// ==========================
+// 📈 Trading & Subscriptions
+// ==========================
+
+model Pair {
+  id        String   @id @default(uuid())
+  symbol    String   @unique
+  name      String
+  recs      Recommendation[]
+}
+
+model Recommendation {
+  id          String   @id @default(uuid())
+  pairId      String
+  pair        Pair     @relation(fields: [pairId], references: [id])
+  providerId  String
+  provider    User     @relation(fields: [providerId], references: [id])
+  type        TradeType
+  entryPrice  Float
+  takeProfit  Float
+  stopLoss    Float
+  status      TradeStatus @default(PENDING)
+  result      TradeResult?
+  activatedAt DateTime?
+  closedAt    DateTime?
+  createdAt   DateTime @default(now())
+}
+
+enum TradeType { 
+  BUY
+  SELL 
+}
+
+enum TradeStatus { 
+  PENDING
+  ACTIVE
+  CLOSED
+  EXPIRED 
+}
+
+enum TradeResult { 
+  WIN
+  LOSS 
+}
+
+model Subscription {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  providerId  String
+  provider    User     @relation("ProviderSubscriptions", fields: [providerId], references: [id])
+  price       Float
+  startDate   DateTime @default(now())
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+}
+
+// ==========================
+// 📊 Content & Support
+// ==========================
+
+model Analysis {
+  id          String   @id @default(uuid())
+  analystId   String
+  analyst     User     @relation(fields: [analystId], references: [id])
+  title       String
+  content     String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Sponsor {
+  id        String   @id @default(uuid())
+  name      String
+  logo      String
+  url       String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Ticket {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  subject   String
+  status    String   @default("OPEN")
+  messages  TicketMessage[]
+  createdAt DateTime @default(now())
+}
+
+model TicketMessage {
+  id        String   @id @default(uuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model AdminMessage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
