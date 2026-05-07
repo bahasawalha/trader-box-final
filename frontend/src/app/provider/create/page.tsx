@@ -19,9 +19,15 @@ export default function CreateRecommendation() {
     if (!form.pair || !form.entry || !form.tp || !form.sl) return alert("Fill all fields");
     setLoading(true);
     try {
-      await apiFetch("/recommendation", {
+      await apiFetch("/recommendations/create", {
         method: "POST",
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          symbol: form.pair,
+          type: form.type,
+          entryPrice: form.entry,
+          takeProfit: form.tp,
+          stopLoss: form.sl
+        })
       });
       alert("Signal Published Successfully!");
       setForm({ pair: "", type: "BUY", entry: "", tp: "", sl: "" });

@@ -1,12 +1,27 @@
 import React from 'react';
 
-export const Card = ({ children, className = "" }) => (
+interface CardProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export const Card = ({ children, className = "" }: CardProps) => (
   <div className={`glass p-6 rounded-2xl transition-all duration-300 hover:scale-[1.02] ${className}`}>
     {children}
   </div>
 );
 
-export const ProviderCard = ({ provider }) => (
+interface Provider {
+  name: string;
+  winRate: number;
+  score: number;
+}
+
+interface ProviderCardProps {
+  provider: Provider;
+}
+
+export const ProviderCard = ({ provider }: ProviderCardProps) => (
   <Card className="flex flex-col gap-4">
     <div className="flex items-center gap-4">
       <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#00D4FF] to-[#00FF9C] flex items-center justify-center text-black font-bold text-xl">
@@ -26,7 +41,18 @@ export const ProviderCard = ({ provider }) => (
   </Card>
 );
 
-export const SponsorSlider = ({ sponsors }) => (
+interface Sponsor {
+  id: string | number;
+  url: string;
+  logo: string;
+  name: string;
+}
+
+interface SponsorSliderProps {
+  sponsors: Sponsor[];
+}
+
+export const SponsorSlider = ({ sponsors }: SponsorSliderProps) => (
   <div className="flex gap-6 overflow-x-auto pb-4 no-scrollbar">
     {sponsors.map((s) => (
       <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">

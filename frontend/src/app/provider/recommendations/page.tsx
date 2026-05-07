@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { motion } from "framer-motion";
-import { StatusBadge } from "@/components/UI_Addons"; // I'll create this or use inline
 
 export default function MyRecommendations() {
   const [recs, setRecs] = useState<any[]>([]);

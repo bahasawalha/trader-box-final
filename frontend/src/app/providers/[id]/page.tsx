@@ -158,23 +158,23 @@ function RecommendationRow({ rec }: any) {
           {rec.type}
         </div>
         <div>
-          <h3 className="text-lg font-bold">{rec.pair}</h3>
-          <p className="text-xs text-gray-500 font-mono">ID: #{rec.id}</p>
+          <h3 className="text-lg font-bold">{rec.pair?.symbol || "N/A"}</h3>
+          <p className="text-xs text-gray-500 font-mono">ID: #{rec.id.slice(0,8)}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-8 w-full md:w-auto text-center md:text-left">
         <div className="space-y-1">
           <p className="text-[10px] text-gray-500 uppercase font-bold">Entry</p>
-          <p className="font-mono text-sm">{rec.entry}</p>
+          <p className="font-mono text-sm">{rec.entryPrice}</p>
         </div>
         <div className="space-y-1">
           <p className="text-[10px] text-gray-500 uppercase font-bold">Target</p>
-          <p className="font-mono text-sm text-[#00FF9C]">{rec.tp}</p>
+          <p className="font-mono text-sm text-[#00FF9C]">{rec.takeProfit}</p>
         </div>
         <div className="space-y-1">
           <p className="text-[10px] text-gray-500 uppercase font-bold">Stop</p>
-          <p className="font-mono text-sm text-[#FF4D4F]">{rec.sl}</p>
+          <p className="font-mono text-sm text-[#FF4D4F]">{rec.stopLoss}</p>
         </div>
       </div>
 

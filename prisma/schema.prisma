@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -16,7 +16,7 @@ model User {
   email         String   @unique
   password      String
 
-  role          UserRole @default(USER)
+  role          String   @default("USER")
 
   name          String?
   avatar        String?
@@ -38,19 +38,14 @@ model User {
   deposits      Deposit[]
   withdrawals   Withdrawal[]
   recommendations Recommendation[]
-  analyses      Analysis[]
-  tickets       Ticket[]
-  messages      TicketMessage[]
-  adminMessages AdminMessage[]
-  auditLogs     AuditLog[]
+  notifications   Notification[]
+  adminMessages   AdminMessage[]
+  tickets         Ticket[]
+  messages        TicketMessage[]
+  auditLogs       AuditLog[]
+  analyses        Analysis[]
 }
 
-enum UserRole {
-  USER
-  PROVIDER
-  ANALYST
-  ADMIN
-}
 
 // ==========================
 // 💼 Wallet + 🧾 Ledger
@@ -69,22 +64,13 @@ model LedgerEntry {
   id            String      @id @default(uuid())
   walletId      String
   wallet        Wallet      @relation(fields: [walletId], references: [id])
-  type          LedgerType
+  type          String
   amount        Float
   balanceAfter  Float
   referenceId   String?     // UUID of the source transaction (Deposit/Withdrawal/Sub)
   createdAt     DateTime    @default(now())
 }
 
-enum LedgerType {
-  DEPOSIT
-  SUBSCRIPTION
-  PROVIDER_EARNING
-  ADMIN_PROFIT
-  WITHDRAWAL
-  REFERRAL_REWARD
-  INTERNAL_TRANSFER
-}
 
 // ==========================
 // 💰 Financial Operations
@@ -95,7 +81,7 @@ model Deposit {
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   amount      Float
-  status      FinancialStatus @default(PENDING)
+  status      String @default("PENDING")
   method      String
   reference   String?
   approvedAt  DateTime?
@@ -107,18 +93,13 @@ model Withdrawal {
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   amount      Float
-  status      FinancialStatus @default(PENDING)
+  status      String @default("PENDING")
   method      String
   address     String
   approvedAt  DateTime?
   createdAt   DateTime @default(now())
 }
 
-enum FinancialStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
 
 // ==========================
 // 🛡️ Audit Trail
@@ -130,7 +111,7 @@ model AuditLog {
   admin       User     @relation(fields: [adminId], references: [id])
   action      String   // e.g., "APPROVE_DEPOSIT", "CHANGE_USER_ROLE"
   targetId    String?  // ID of the target object
-  details     Json?    // Contextual data
+  details     String?  // Contextual data
   ip          String?
   createdAt   DateTime @default(now())
 }
@@ -152,33 +133,17 @@ model Recommendation {
   pair        Pair     @relation(fields: [pairId], references: [id])
   providerId  String
   provider    User     @relation(fields: [providerId], references: [id])
-  type        TradeType
+  type        String
   entryPrice  Float
   takeProfit  Float
   stopLoss    Float
-  status      TradeStatus @default(PENDING)
-  result      TradeResult?
+  status      String      @default("PENDING")
+  result      String?
   activatedAt DateTime?
   closedAt    DateTime?
   createdAt   DateTime @default(now())
 }
 
-enum TradeType { 
-  BUY
-  SELL 
-}
-
-enum TradeStatus { 
-  PENDING
-  ACTIVE
-  CLOSED
-  EXPIRED 
-}
-
-enum TradeResult { 
-  WIN
-  LOSS 
-}
 
 model Subscription {
   id          String   @id @default(uuid())
@@ -202,6 +167,7 @@ model Analysis {
   analyst     User     @relation(fields: [analystId], references: [id])
   title       String
   content     String
+  image       String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 }
@@ -213,6 +179,17 @@ model Sponsor {
   url       String
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+model SponsorshipRequest {
+  id          String   @id @default(uuid())
+  companyName String
+  email       String
+  website     String?
+  license     String?
+  type        String   @default("OTHER")
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt   DateTime @default(now())
 }
 
 model Ticket {
@@ -241,6 +218,16 @@ model AdminMessage {
   user      User     @relation(fields: [userId], references: [id])
   title     String
   content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SIGNAL, FINANCIAL
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }

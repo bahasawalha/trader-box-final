@@ -1,304 +1,260 @@
 "use client";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownLeft, ArrowUpRight, Clock, ShieldCheck, Wallet as WalletIcon } from "lucide-react";
+
+import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { motion, AnimatePresence } from "framer-motion";
+import { useLanguage } from "@/context/LanguageContext";
+import { 
+  Wallet, 
+  ArrowUpRight, 
+  ArrowDownLeft, 
+  History, 
+  Plus, 
+  Minus, 
+  CreditCard, 
+  ShieldCheck, 
+  Clock
+} from "lucide-react";
 
 export default function WalletPage() {
+  const { t, isRTL } = useLanguage();
   const [balance, setBalance] = useState(0);
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
 
   useEffect(() => {
-    loadWallet();
+    loadData();
   }, []);
 
-  async function loadWallet() {
+  async function loadData() {
     try {
-      const b = await apiFetch("/wallet/balance");
-      const t = await apiFetch("/wallet/transactions");
-
+      const [b, t] = await Promise.all([
+        apiFetch("/wallet/balance"),
+        apiFetch("/wallet/transactions")
+      ]);
       setBalance(b.balance);
       setTransactions(t);
-    } catch (error) {
-      console.error("Failed to load wallet data:", error);
-    } finally {
-      setLoading(false);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }
+
+  async function handleDeposit(e: any) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    const amount = parseFloat(data.amount as string);
+
+    if (amount <= 0) {
+      alert(isRTL ? "يرجى إدخال مبلغ صحيح أكبر من صفر." : "Please enter a valid amount greater than zero.");
+      return;
     }
+
+    try {
+      await apiFetch("/wallet/deposit", {
+        method: "POST",
+        body: JSON.stringify({ ...data, amount, method: "BINANCE_USDT" })
+      });
+      alert(isRTL ? "تم إرسال الطلب بنجاح، بانتظار المراجعة." : "Request submitted successfully, pending audit.");
+      setShowDeposit(false);
+    } catch (e: any) { alert(e.message); }
   }
 
-  async function handleDeposit(amount: number) {
-    await apiFetch("/deposit", {
-      method: "POST",
-      body: JSON.stringify({ amount, method: "USDT_TRC20", reference: "Frontend Deposit" })
-    });
-    loadWallet();
-    setShowDeposit(false);
+  async function handleWithdraw(e: any) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    try {
+      await apiFetch("/wallet/withdraw", {
+        method: "POST",
+        body: JSON.stringify({ ...data, method: "TRC20" })
+      });
+      alert(isRTL ? "تم تسجيل طلب السحب بنجاح." : "Withdrawal request recorded successfully.");
+      setShowWithdraw(false);
+      loadData(); // Refresh balance
+    } catch (e: any) { alert(e.message); }
   }
 
-  async function handleWithdraw(amount: number, address: string) {
-    await apiFetch("/withdraw", {
-      method: "POST",
-      body: JSON.stringify({ amount, method: "USDT_TRC20", address })
-    });
-    loadWallet();
-    setShowWithdraw(false);
-  }
-
-  if (loading) return (
-    <div className="min-h-screen bg-[#0B0F1A] flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[#00D4FF]"></div>
-    </div>
-  );
+  if (loading) return <div className="min-h-screen bg-[#0B0F1A] flex items-center justify-center text-white font-mono uppercase tracking-widest animate-pulse">{t.loading}</div>;
 
   return (
-    <div className="min-h-screen bg-[#0B0F1A] text-white p-6 space-y-10 pb-32 max-w-5xl mx-auto">
+    <div className="min-h-screen bg-[#0B0F1A] text-white p-6 md:p-12">
+      <div className="max-w-6xl mx-auto space-y-10">
+        
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{t.financial_terminal}</h1>
+            <p className="text-gray-500 mt-1">{t.liquidity_desc}</p>
+          </div>
+          <div className="flex gap-4">
+            <button 
+              onClick={() => setShowDeposit(true)}
+              className="px-6 py-3 rounded-2xl bg-[#00D4FF] text-black font-bold flex items-center gap-2 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] transition-all"
+            >
+              <Plus size={18} /> {t.deposit}
+            </button>
+            <button 
+              onClick={() => setShowWithdraw(true)}
+              className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 font-bold flex items-center gap-2 hover:bg-white/10 transition-all"
+            >
+              <Minus size={18} /> {t.withdraw}
+            </button>
+          </div>
+        </header>
 
-      <header className="space-y-2">
-        <h1 className="text-3xl font-bold">Financial Hub</h1>
-        <p className="text-gray-400">Manage your assets and monitor your ledger entries.</p>
-      </header>
-
-      {/* 💰 Balance */}
-      <BalanceCard balance={balance} />
-
-      {/* 🔘 Actions */}
-      <div className="flex gap-4">
-        <button
-          onClick={() => setShowDeposit(true)}
-          className="flex-1 bg-[#00FF9C] text-black px-8 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:scale-[1.02] transition-all"
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative bg-gradient-to-br from-[#121826] to-[#0B0F1A] border border-white/10 rounded-[40px] p-10 overflow-hidden group shadow-2xl"
         >
-          <ArrowDownLeft size={20} /> Deposit
-        </button>
+          <div className={`absolute top-0 ${isRTL ? 'left-0' : 'right-0'} p-12 opacity-5 group-hover:opacity-10 transition-opacity`}>
+            <CreditCard size={240} />
+          </div>
+          
+          <div className="relative z-10 space-y-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#00D4FF]/10 flex items-center justify-center text-[#00D4FF]">
+                <Wallet size={20} />
+              </div>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{t.available_liquidity}</span>
+            </div>
 
-        <button
-          onClick={() => setShowWithdraw(true)}
-          className="flex-1 bg-[#FF4D4F] text-white px-8 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:scale-[1.02] transition-all"
-        >
-          <ArrowUpRight size={20} /> Withdraw
-        </button>
+            <div>
+              <div className="text-sm font-medium text-gray-400 mb-1 font-mono uppercase tracking-widest">{t.global_balance}</div>
+              <div className="text-6xl md:text-7xl font-bold tracking-tighter text-[#00D4FF]">
+                ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+
+            <div className="flex gap-8">
+              <div className="flex items-center gap-2 text-green-400">
+                <div className="w-8 h-8 rounded-full bg-green-400/10 flex items-center justify-center"><ArrowUpRight size={14} className={isRTL ? 'rotate-180' : ''} /></div>
+                <div className="text-xs font-bold uppercase tracking-widest">{t.ledger_verified}</div>
+              </div>
+              <div className="flex items-center gap-2 text-[#00D4FF]">
+                <div className="w-8 h-8 rounded-full bg-[#00D4FF]/10 flex items-center justify-center"><ShieldCheck size={14} /></div>
+                <div className="text-xs font-bold uppercase tracking-widest">{t.secured_node}</div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+            <History className="text-gray-500" size={24} />
+            <h2 className="text-xl font-bold">{t.audit_history}</h2>
+          </div>
+
+          <div className="bg-[#121826] border border-white/5 rounded-[32px] overflow-hidden shadow-xl overflow-x-auto">
+            <table className="w-full text-left rtl:text-right">
+              <thead>
+                <tr className="bg-white/5 border-b border-white/10">
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-gray-500">{t.operation}</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-gray-500">{t.date_time}</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-gray-500 text-right rtl:text-left">{t.amount}</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-gray-500 text-right rtl:text-left">{t.running_balance}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {transactions.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors group">
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tx.amount > 0 ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'}`}>
+                          {tx.amount > 0 ? <ArrowDownLeft size={16} className={isRTL ? 'rotate-180' : ''} /> : <ArrowUpRight size={16} className={isRTL ? 'rotate-180' : ''} />}
+                        </div>
+                        <span className="font-bold text-sm">{tx.type}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-xs text-gray-500 font-mono">
+                      {new Date(tx.createdAt).toLocaleString()}
+                    </td>
+                    <td className={`px-8 py-5 text-right rtl:text-left font-bold text-sm ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(2)}$
+                    </td>
+                    <td className="px-8 py-5 text-right rtl:text-left font-mono text-xs text-gray-400">
+                      ${tx.balanceAfter.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {transactions.length === 0 && (
+              <div className="p-20 text-center text-gray-600 font-mono text-xs uppercase tracking-[0.2em]">
+                {t.no_tx}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
 
-      {/* 📊 Transactions */}
-      <div className="space-y-6">
-        <div className="flex justify-between items-center px-2">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Clock className="text-[#00D4FF]" size={20} /> Recent Ledger Entries
-          </h2>
-          <button className="text-[#00D4FF] text-sm font-bold hover:underline">Download Report</button>
-        </div>
-
-        <div className="space-y-3">
-          {transactions.map((t) => (
-            <TransactionRow key={t.id} tx={t} />
-          ))}
-        </div>
-      </div>
-
-      {/* Modals */}
       <AnimatePresence>
         {showDeposit && (
-          <DepositModal 
-            onClose={() => setShowDeposit(false)} 
-            onDeposit={handleDeposit} 
-          />
+          <Modal title={t.deposit} close={() => setShowDeposit(false)}>
+             <form onSubmit={handleDeposit} className="space-y-6">
+                <div className="bg-[#00D4FF]/10 border border-[#00D4FF]/20 p-4 rounded-2xl flex items-center gap-4">
+                  <CreditCard className="text-[#00D4FF]" />
+                  <p className="text-xs text-gray-400">{isRTL ? 'يرجى إرسال USDT إلى العنوان أدناه ثم إدخال المبلغ ومعرف العملية.' : 'Please send USDT to the address below, then enter the amount and transaction ID.'}</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'عنوان المحفظة (TRC20)' : 'TRC20 Wallet Address'}</label>
+                  <div className="p-4 bg-black/40 border border-white/10 rounded-2xl font-mono text-sm break-all text-[#00D4FF]">
+                    TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'المبلغ (USDT)' : 'Amount (USDT)'}</label>
+                    <input name="amount" type="number" min="1" step="any" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#00D4FF]" placeholder="100" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'معرف العملية (Binance ID / TxID)' : 'Transaction ID / Binance ID'}</label>
+                    <input name="reference" type="text" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#00D4FF]" placeholder="Ex: 5829103..." />
+                  </div>
+                </div>
+                <button type="submit" className="w-full py-4 rounded-2xl bg-[#00D4FF] text-black font-bold hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] transition-all">{isRTL ? 'تأكيد الإرسال' : 'Confirm Submission'}</button>
+             </form>
+          </Modal>
         )}
+
         {showWithdraw && (
-          <WithdrawModal 
-            onClose={() => setShowWithdraw(false)} 
-            onWithdraw={handleWithdraw} 
-          />
+          <Modal title={t.withdraw} close={() => setShowWithdraw(false)}>
+             <form onSubmit={handleWithdraw} className="space-y-6">
+                <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-2xl flex items-center gap-4">
+                  <ArrowUpRight className="text-orange-500" />
+                  <p className="text-xs text-gray-400">{isRTL ? 'الحد الأدنى للسحب هو 100$. سيتم خصم المبلغ من رصيدك فوراً.' : 'Minimum withdrawal is $100. Amount will be deducted immediately.'}</p>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'المبلغ المراد سحبه' : 'Amount to Withdraw'}</label>
+                    <input name="amount" type="number" min="100" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#00D4FF]" placeholder="100" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'عنوان محفظة USDT (TRC20)' : 'USDT Wallet Address (TRC20)'}</label>
+                    <input name="address" type="text" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#00D4FF]" placeholder="TXXXX..." />
+                  </div>
+                </div>
+                <button type="submit" className="w-full py-4 rounded-2xl bg-white text-black font-bold hover:bg-gray-200 transition-all">{isRTL ? 'طلب سحب' : 'Request Withdrawal'}</button>
+             </form>
+          </Modal>
         )}
       </AnimatePresence>
-
     </div>
   );
 }
 
-// 💰 2. Balance Card (Premium)
-function BalanceCard({ balance }: any) {
+function Modal({ children, title, close }: any) {
   return (
-    <motion.div
-      whileHover={{ scale: 1.01 }}
-      className="bg-white/5 backdrop-blur-lg border border-white/10 p-10 rounded-3xl shadow-[0_0_50px_rgba(0,212,255,0.15)] relative overflow-hidden"
-    >
-      <div className="absolute top-0 right-0 p-8 opacity-10">
-        <WalletIcon size={120} className="text-[#00D4FF]" />
-      </div>
-      
-      <div className="relative z-10 space-y-4">
-        <div className="flex items-center gap-2 text-gray-400 uppercase tracking-widest text-xs font-bold">
-          <ShieldCheck size={14} className="text-[#00FF9C]" /> Secure Asset Storage
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-[#121826] border border-white/10 w-full max-w-lg rounded-[40px] p-10 relative z-10 shadow-3xl">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold">{title}</h2>
+          <button onClick={close} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10">✕</button>
         </div>
-
-        <div className="space-y-1">
-          <p className="text-gray-500 text-sm">Available Balance</p>
-          <h1 className="text-6xl font-bold font-mono">
-            ${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </h1>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// 📊 3. Transaction Row
-function TransactionRow({ tx }: any) {
-  const isPositive = tx.amount > 0;
-  const isPending = tx.status === "PENDING";
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="bg-white/5 backdrop-blur-lg border border-white/10 p-5 rounded-2xl flex justify-between items-center hover:bg-white/[0.08] transition-all group"
-    >
-      <div className="flex items-center gap-4">
-        <div className={`p-2 rounded-xl ${isPositive ? 'bg-[#00FF9C]/10 text-[#00FF9C]' : 'bg-[#FF4D4F]/10 text-[#FF4D4F]'}`}>
-          {isPositive ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
-        </div>
-        <div>
-          <p className="font-bold group-hover:text-[#00D4FF] transition-colors">{tx.type.replace('_', ' ')}</p>
-          <p className="text-xs text-gray-500">{tx.date}</p>
-        </div>
-      </div>
-
-      <div className="text-right space-y-1">
-        <div
-          className={`text-lg font-bold font-mono ${
-            isPositive ? "text-[#00FF9C]" : "text-[#FF4D4F]"
-          }`}
-        >
-          {isPositive ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
-        </div>
-        {isPending && (
-          <span className="bg-yellow-500/10 text-yellow-400 text-[10px] px-2 py-0.5 rounded-lg border border-yellow-500/20 font-bold uppercase tracking-wider">
-            Pending
-          </span>
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
-// 📥 4. Deposit Modal
-function DepositModal({ onClose, onDeposit }: any) {
-  const [amount, setAmount] = useState("");
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
-    >
-      <motion.div 
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        className="bg-[#121826] border border-white/10 p-8 rounded-3xl w-full max-w-md space-y-6 shadow-2xl"
-      >
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold">Add Funds</h2>
-          <p className="text-sm text-gray-400">
-            Securely deposit USDT (TRC20) or use your Binance ID to fund your wallet.
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Amount ($)</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              className="w-full p-4 rounded-xl bg-black/40 border border-white/10 focus:border-[#00D4FF] outline-none transition-all font-mono text-xl text-white"
-            />
-          </div>
-
-          <div className="p-4 bg-[#00D4FF]/5 border border-[#00D4FF]/20 rounded-2xl space-y-1">
-            <p className="text-[10px] font-bold text-[#00D4FF] uppercase tracking-widest">Selected Method</p>
-            <p className="text-sm font-semibold text-white">Binance Pay / USDT-TRC20</p>
-          </div>
-        </div>
-
-        <div className="space-y-3 pt-2">
-          <button 
-            onClick={() => onDeposit(Number(amount))}
-            className="w-full bg-[#00D4FF] text-black py-4 rounded-2xl font-bold hover:glow-border transition-all"
-          >
-            Continue to Payment
-          </button>
-          <button onClick={onClose} className="w-full text-sm text-gray-500 font-bold hover:text-white transition-colors">
-            Cancel
-          </button>
-        </div>
+        {children}
       </motion.div>
-    </motion.div>
-  );
-}
-
-// 📤 5. Withdraw Modal
-function WithdrawModal({ onClose, onWithdraw }: any) {
-  const [amount, setAmount] = useState("");
-  const [address, setAddress] = useState("");
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
-    >
-      <motion.div 
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        className="bg-[#121826] border border-white/10 p-8 rounded-3xl w-full max-w-md space-y-6 shadow-2xl"
-      >
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-[#FF4D4F]">Withdraw Funds</h2>
-          <p className="text-sm text-gray-400 text-white/60">
-            Minimum withdrawal is <span className="text-white font-bold">$100</span>. Processing takes up to 24 hours.
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Amount ($)</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="100.00"
-              className="w-full p-4 rounded-xl bg-black/40 border border-white/10 focus:border-[#FF4D4F] outline-none transition-all font-mono text-xl text-white"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Withdrawal Address</label>
-            <input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Your USDT TRC20 Address or ID"
-              className="w-full p-4 rounded-xl bg-black/40 border border-white/10 focus:border-[#FF4D4F] outline-none transition-all text-sm text-white"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-3 pt-2">
-          <button 
-            onClick={() => onWithdraw(Number(amount), address)}
-            className="w-full bg-[#FF4D4F] text-white py-4 rounded-2xl font-bold hover:scale-[1.02] transition-all shadow-lg shadow-[#FF4D4F]/20"
-          >
-            Confirm Withdrawal
-          </button>
-          <button onClick={onClose} className="w-full text-sm text-gray-500 font-bold hover:text-white transition-colors">
-            Cancel
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
+    </div>
   );
 }
