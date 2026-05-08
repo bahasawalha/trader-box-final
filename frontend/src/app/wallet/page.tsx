@@ -20,6 +20,8 @@ export default function WalletPage() {
   const { t, isRTL } = useLanguage();
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [methods, setMethods] = useState<any[]>([]);
+  const [selectedMethod, setSelectedMethod] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
@@ -30,12 +32,15 @@ export default function WalletPage() {
 
   async function loadData() {
     try {
-      const [b, t] = await Promise.all([
+      const [b, t, m] = await Promise.all([
         apiFetch("/wallet/balance"),
-        apiFetch("/wallet/transactions")
+        apiFetch("/wallet/transactions"),
+        apiFetch("/deposit/methods")
       ]);
       setBalance(b.balance);
       setTransactions(t);
+      setMethods(m);
+      if (m.length > 0) setSelectedMethod(m[0]);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }
@@ -54,7 +59,11 @@ export default function WalletPage() {
     try {
       await apiFetch("/wallet/deposit", {
         method: "POST",
-        body: JSON.stringify({ ...data, amount, method: "BINANCE_USDT" })
+        body: JSON.stringify({ 
+          ...data, 
+          amount, 
+          method: selectedMethod?.name || "MANUAL" 
+        })
       });
       alert(isRTL ? "تم إرسال الطلب بنجاح، بانتظار المراجعة." : "Request submitted successfully, pending audit.");
       setShowDeposit(false);
@@ -195,25 +204,62 @@ export default function WalletPage() {
              <form onSubmit={handleDeposit} className="space-y-6">
                 <div className="bg-[#00D4FF]/10 border border-[#00D4FF]/20 p-4 rounded-2xl flex items-center gap-4">
                   <CreditCard className="text-[#00D4FF]" />
-                  <p className="text-xs text-gray-400">{isRTL ? 'يرجى إرسال USDT إلى العنوان أدناه ثم إدخال المبلغ ومعرف العملية.' : 'Please send USDT to the address below, then enter the amount and transaction ID.'}</p>
+                  <p className="text-xs text-gray-400">{isRTL ? 'اختر طريقة الإيداع المناسبة لك وقم بتحويل المبلغ إلى العنوان الموضح.' : 'Select your preferred deposit method and transfer the amount to the address shown.'}</p>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'عنوان المحفظة (TRC20)' : 'TRC20 Wallet Address'}</label>
-                  <div className="p-4 bg-black/40 border border-white/10 rounded-2xl font-mono text-sm break-all text-[#00D4FF]">
-                    TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'طريقة الإيداع' : 'Deposit Method'}</label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {methods.map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setSelectedMethod(m)}
+                        className={`p-4 rounded-2xl border text-left rtl:text-right transition-all flex justify-between items-center ${
+                          selectedMethod?.id === m.id ? 'bg-[#00D4FF]/10 border-[#00D4FF] text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                        }`}
+                      >
+                        <span className="font-bold text-sm">{m.name}</span>
+                        {selectedMethod?.id === m.id && <ShieldCheck size={16} className="text-[#00D4FF]" />}
+                      </button>
+                    ))}
+                    {methods.length === 0 && (
+                      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-[10px] font-bold uppercase tracking-widest text-center">
+                         {isRTL ? 'لا توجد طرق إيداع متاحة حالياً' : 'No deposit methods available'}
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {selectedMethod && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'عنوان المحفظة للتحويل' : 'Destination Wallet Address'}</label>
+                    <div className="p-5 bg-black/60 border border-[#00D4FF]/30 rounded-2xl font-mono text-sm break-all text-[#00D4FF] shadow-inner relative group">
+                      {selectedMethod.address}
+                      <div className="absolute top-2 right-2 text-[8px] font-black uppercase text-gray-600 opacity-50 group-hover:opacity-100 transition-opacity">
+                         {selectedMethod.name}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'المبلغ (USDT)' : 'Amount (USDT)'}</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'المبلغ المرسل (USDT)' : 'Sent Amount (USDT)'}</label>
                     <input name="amount" type="number" min="1" step="any" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#00D4FF]" placeholder="100" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'معرف العملية (Binance ID / TxID)' : 'Transaction ID / Binance ID'}</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'معرف العملية (TxID / ID)' : 'Transaction ID / TxID'}</label>
                     <input name="reference" type="text" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#00D4FF]" placeholder="Ex: 5829103..." />
                   </div>
                 </div>
-                <button type="submit" className="w-full py-4 rounded-2xl bg-[#00D4FF] text-black font-bold hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] transition-all">{isRTL ? 'تأكيد الإرسال' : 'Confirm Submission'}</button>
+                <button 
+                  disabled={!selectedMethod}
+                  type="submit" 
+                  className="w-full py-4 rounded-2xl bg-[#00D4FF] text-black font-black uppercase tracking-widest hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition-all disabled:opacity-50 disabled:grayscale"
+                >
+                  {isRTL ? 'تأكيد طلب الإيداع' : 'Confirm Deposit Request'}
+                </button>
              </form>
           </Modal>
         )}

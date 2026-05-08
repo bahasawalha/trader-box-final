@@ -22,10 +22,22 @@ async function processRecommendations() {
       // 1. Activation
       // ======================
       if (r.status === "PENDING") {
-        if (
-          (r.type === "BUY" && price <= r.entryPrice) ||
-          (r.type === "SELL" && price >= r.entryPrice)
-        ) {
+        const isBuyType = ["BUY", "BUY_LIMIT", "BUY_STOP"].includes(r.type);
+        const isSellType = ["SELL", "SELL_LIMIT", "SELL_STOP"].includes(r.type);
+
+        let shouldActivate = false;
+        
+        if (r.type === "BUY" || r.type === "BUY_LIMIT") {
+          if (price <= r.entryPrice) shouldActivate = true;
+        } else if (r.type === "BUY_STOP") {
+          if (price >= r.entryPrice) shouldActivate = true;
+        } else if (r.type === "SELL" || r.type === "SELL_LIMIT") {
+          if (price >= r.entryPrice) shouldActivate = true;
+        } else if (r.type === "SELL_STOP") {
+          if (price <= r.entryPrice) shouldActivate = true;
+        }
+
+        if (shouldActivate) {
           await prisma.recommendation.update({
             where: { id: r.id },
             data: {
@@ -33,7 +45,7 @@ async function processRecommendations() {
               activatedAt: new Date()
             }
           });
-          console.log(`Recommendation ${r.id} (${r.pair.symbol}) activated at ${price}`);
+          console.log(`Recommendation ${r.id} (${r.pair.symbol}) activated at ${price} [Type: ${r.type}]`);
         }
       }
 
@@ -41,10 +53,13 @@ async function processRecommendations() {
       // 2. TP / SL
       // ======================
       if (r.status === "ACTIVE") {
+        const isBuyType = ["BUY", "BUY_LIMIT", "BUY_STOP"].includes(r.type);
+        const isSellType = ["SELL", "SELL_LIMIT", "SELL_STOP"].includes(r.type);
+
         // Take Profit
         if (
-          (r.type === "BUY" && price >= r.takeProfit) ||
-          (r.type === "SELL" && price <= r.takeProfit)
+          (isBuyType && price >= r.takeProfit) ||
+          (isSellType && price <= r.takeProfit)
         ) {
           await prisma.recommendation.update({
             where: { id: r.id },
@@ -59,8 +74,8 @@ async function processRecommendations() {
 
         // Stop Loss
         else if (
-          (r.type === "BUY" && price <= r.stopLoss) ||
-          (r.type === "SELL" && price >= r.stopLoss)
+          (isBuyType && price <= r.stopLoss) ||
+          (isSellType && price >= r.stopLoss)
         ) {
           await prisma.recommendation.update({
             where: { id: r.id },

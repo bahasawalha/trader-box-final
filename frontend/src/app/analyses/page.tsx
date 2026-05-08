@@ -15,10 +15,13 @@ import {
   ArrowLeft,
   Filter,
   Zap,
+  ArrowUpRight,
   TrendingUp,
-  Activity,
-  ArrowUpRight
+  ShieldCheck,
+  Activity
 } from "lucide-react";
+import NewsTicker from "@/components/NewsTicker";
+import EconomicCalendarTicker from "@/components/EconomicCalendarTicker";
 
 export default function AnalysesPage() {
   const { isRTL } = useLanguage();
@@ -63,10 +66,13 @@ export default function AnalysesPage() {
       <nav className="fixed top-0 left-0 right-0 z-[100] px-6 py-8 pointer-events-none">
         <div className="max-w-7xl mx-auto flex justify-between items-center bg-black/40 backdrop-blur-xl border border-white/5 px-8 py-4 rounded-[30px] pointer-events-auto">
           <motion.div
-            animate={{ opacity: [1, 0.5, 1], x: [0, -2, 0] }}
+            animate={{ 
+              opacity: [0.6, 1, 0.6],
+              scale: [1, 1.05, 1]
+            }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
-            <Link href="/" className="flex items-center gap-4 text-gray-400 hover:text-white transition-all group">
+            <Link href="/" className="flex items-center gap-4 text-purple-400 hover:text-white transition-all group">
               <ArrowLeft size={20} className={isRTL ? "rotate-180" : ""} />
               <span className="font-black text-[10px] uppercase tracking-widest">{isRTL ? 'العودة للرئيسية' : 'BACK TO TERMINAL'}</span>
             </Link>
@@ -92,6 +98,12 @@ export default function AnalysesPage() {
             <p className="text-gray-500 text-xl max-w-2xl mx-auto leading-relaxed italic">
               {isRTL ? 'وصول حصري لأحدث التقارير الفنية والأساسية من نخبة المحللين المعتمدين.' : 'Exclusive access to the latest technical and fundamental reports from elite certified analysts.'}
             </p>
+            <div className="pt-8 space-y-2">
+              <NewsTicker />
+              <div className="rounded-2xl overflow-hidden border border-white/5 shadow-2xl">
+                <EconomicCalendarTicker />
+              </div>
+            </div>
          </div>
       </section>
 
@@ -151,8 +163,11 @@ export default function AnalysesPage() {
                    <div className="pt-8 border-t border-white/5 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-500"><User size={18} /></div>
-                         <div>
-                            <div className="text-[10px] font-black text-white uppercase">{a.author?.email.split('@')[0] || (isRTL ? 'محلل معتمد' : 'Certified Analyst')}</div>
+                         <div className="flex flex-col">
+                            <div className="flex items-center gap-1">
+                               <div className="text-[10px] font-black text-white uppercase">{a.author?.email.split('@')[0] || (isRTL ? 'محلل معتمد' : 'Certified Analyst')}</div>
+                               <ShieldCheck size={12} className="text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                            </div>
                             <div className="text-[9px] text-gray-600 font-bold flex items-center gap-2"><Calendar size={10} /> {new Date(a.createdAt).toLocaleDateString()}</div>
                          </div>
                       </div>

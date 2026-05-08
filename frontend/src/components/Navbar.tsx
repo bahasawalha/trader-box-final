@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Wallet, BarChart3, Users, HeadphonesIcon, Home, Globe, LogOut, LayoutDashboard, User } from 'lucide-react';
+import { Wallet, BarChart3, Users, HeadphonesIcon, Home, Globe, LogOut, LayoutDashboard, User, ShieldPlus, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 
@@ -19,9 +19,14 @@ export default function Navbar() {
     navItems.push({ icon: <Wallet size={20} />, label: t.wallet || 'Wallet', href: '/wallet' });
     
     if (user.role === 'ADMIN') {
-      navItems.push({ icon: <LayoutDashboard size={20} />, label: 'Admin', href: '/admin' });
+      navItems.push({ icon: <LayoutDashboard size={20} />, label: t.admin || 'Admin', href: '/admin' });
+      navItems.push({ icon: <ShieldAlert size={20} />, label: t.requests || 'Requests', href: '/admin/role-requests' });
     } else if (user.role === 'PROVIDER') {
-      navItems.push({ icon: <LayoutDashboard size={20} />, label: 'Dashboard', href: '/provider' });
+      navItems.push({ icon: <LayoutDashboard size={20} />, label: t.provider || 'Dashboard', href: '/provider' });
+    } else if (user.role === 'ANALYST') {
+      navItems.push({ icon: <LayoutDashboard size={20} />, label: t.analyst || 'Dashboard', href: '/analyst' });
+    } else if (user.role === 'USER') {
+      navItems.push({ icon: <ShieldPlus size={20} />, label: t.upgrade || 'Upgrade', href: '/upgrade' });
     }
   }
 

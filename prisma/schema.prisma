@@ -20,6 +20,7 @@ model User {
 
   name          String?
   avatar        String?
+  bio           String?
 
   referralCode  String   @unique
   referredById  String?
@@ -28,6 +29,8 @@ model User {
 
   lastWithdrawalAt DateTime?
   lastIp          String?
+
+  subscriptionPrice Float @default(29)
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -44,6 +47,24 @@ model User {
   messages        TicketMessage[]
   auditLogs       AuditLog[]
   analyses        Analysis[]
+  roleRequests    RoleRequest[]
+}
+
+
+// ==========================
+// 🛡️ Role Upgrade Requests
+// ==========================
+
+model RoleRequest {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  requestedRole String   // PROVIDER or ANALYST
+  status        String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  reason        String?  // Optional justification from user
+  adminNote     String?  // Note from admin upon approval/rejection
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 
@@ -230,4 +251,18 @@ model Notification {
   type      String   @default("INFO") // INFO, SIGNAL, FINANCIAL
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model PaymentMethod {
+  id        String   @id @default(uuid())
+  name      String   // e.g. USDT (TRC20)
+  address   String   // Wallet address
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model AppSettings {
+  id           String @id @default("global")
+  platformFee  Float  @default(30)
+  updatedAt    DateTime @updatedAt
 }

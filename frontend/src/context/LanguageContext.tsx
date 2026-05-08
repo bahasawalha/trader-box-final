@@ -22,6 +22,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     if (saved) setLang(saved);
   }, []);
 
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  }, [lang]);
+
   const toggleLang = () => {
     const newLang = lang === "en" ? "ar" : "en";
     setLang(newLang);

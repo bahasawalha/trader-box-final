@@ -9,7 +9,8 @@ import {
   Settings, 
   LogOut, 
   User as UserIcon,
-  Zap
+  Zap,
+  ShieldPlus
 } from "lucide-react";
 
 export default function UserHeader() {
@@ -70,6 +71,11 @@ export default function UserHeader() {
                <Link href="/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-all text-xs font-bold">
                   <Settings size={16} /> {isRTL ? 'الإعدادات' : 'Terminal Settings'}
                </Link>
+               {user.role === 'USER' && (
+                 <Link href="/upgrade" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-all text-xs font-bold">
+                    <ShieldPlus size={16} /> {isRTL ? 'ترقية الحساب' : 'Upgrade Account'}
+                 </Link>
+               )}
                <button 
                  onClick={logout}
                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-all text-xs font-bold"

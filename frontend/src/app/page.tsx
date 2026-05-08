@@ -47,6 +47,7 @@ import {
   Smartphone,
   Gift
 } from "lucide-react";
+import EconomicCalendarTicker from "@/components/EconomicCalendarTicker";
 
 export default function Home() {
   const { t, lang, isRTL, toggleLang } = useLanguage();
@@ -160,7 +161,7 @@ export default function Home() {
       <div className="pt-16">
         {/* 🌌 News Ticker ... (Rest of Hero/About/Providers/Intelligence Sections) */}
         {/* 📰 Premium News Ticker (Intelligence Ribbon) */}
-        <div className="sticky top-24 z-[100] px-6">
+        <div className="sticky top-24 z-[100] px-6 space-y-2">
           <div className="max-w-7xl mx-auto bg-black/80 backdrop-blur-3xl border border-white/5 rounded-2xl py-3 overflow-hidden whitespace-nowrap shadow-2xl relative group">
             {/* Edge Gradients */}
             <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-black to-transparent z-10"></div>
@@ -173,14 +174,20 @@ export default function Home() {
             >
               {[...dynamicNews.map(n => n.text), ...dynamicNews.map(n => n.text), "BTC +2.4%", "ETH -0.8%", "GOLD ATH"].map((news, i) => (
                 <div key={i} className="flex items-center gap-4">
-                  <div className={`w-1.5 h-1.5 rounded-full ${i % 2 === 0 ? 'bg-[#00FF9C] shadow-[0_0_8px_#00FF9C]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+                  <div className={`w-1.5 h-1.5 rounded-full ${i % 2 === 0 ? 'bg-[#00D4FF] shadow-[0_0_8px_#00D4FF]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
                   <span className="font-mono text-[9px] font-black tracking-[0.2em] text-white/70 uppercase flex items-center gap-2">
                     {news}
-                    {i % 2 === 0 ? <TrendingUp size={10} className="text-[#00FF9C]" /> : <ArrowDownRight size={10} className="text-red-500" />}
+                    {i % 2 === 0 ? <TrendingUp size={10} className="text-[#00D4FF]" /> : <ArrowDownRight size={10} className="text-red-500" />}
                   </span>
                 </div>
               ))}
             </motion.div>
+          </div>
+
+          <div className="max-w-7xl mx-auto">
+            <div className="rounded-2xl overflow-hidden border border-white/5 shadow-2xl">
+              <EconomicCalendarTicker />
+            </div>
           </div>
         </div>
 
@@ -203,7 +210,7 @@ export default function Home() {
                   className="px-10 py-5 rounded-[24px] bg-[#00D4FF] text-black font-black text-xs uppercase tracking-[0.2em] hover:shadow-[0_0_40px_rgba(0,212,255,0.4)] hover:scale-105 transition-all flex items-center gap-3"
                 >
                   <Rocket size={18} />
-                  {isRTL ? 'ابدأ الآن' : 'START NOW'}
+                  {isRTL ? 'تسجيل الدخول' : 'LOGIN NOW'}
                 </Link>
                 <button 
                   onClick={() => setShowAboutModal(true)}
@@ -269,10 +276,23 @@ export default function Home() {
                    <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 group-hover:scale-110 transition-transform">
                       {p.avatar ? <img src={p.avatar} className="w-full h-full object-cover" /> : <Users size={32} className="text-gray-600" />}
                    </div>
-                   <div>
-                      <h4 className="text-2xl font-black truncate">{p.email.split('@')[0]}</h4>
-                      <div className="text-[10px] text-[#00D4FF] font-black uppercase tracking-widest mt-1">Status: Active</div>
+                   <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                         <h4 className="text-2xl font-black truncate">{p.email.split('@')[0]}</h4>
+                         <ShieldCheck size={18} className="text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.5)] shrink-0" />
+                      </div>
+                      <div className="text-[10px] text-[#00D4FF] font-black uppercase tracking-widest">Status: Active</div>
                    </div>
+
+                    {/* 🏢 Jumbo Sponsor Banner */}
+                    <div className="w-full flex items-center gap-4 px-6 py-4 bg-white/5 backdrop-blur-3xl border border-[#00D4FF]/30 rounded-[25px] shadow-[0_0_30px_rgba(0,212,255,0.15)] group/sponsor hover:bg-white/10 hover:border-[#00D4FF]/50 transition-all cursor-pointer">
+                      <div className="w-3 h-3 rounded-full bg-[#00D4FF] animate-pulse shadow-[0_0_20px_#00D4FF]" />
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[#00D4FF] leading-none mb-2">{isRTL ? 'برعاية' : 'SPONSORED BY'}</span>
+                        <div className="text-xl font-black text-white tracking-tighter group-hover:scale-105 transition-transform leading-none">BITGET</div>
+                      </div>
+                    </div>
+
                    <div className="grid grid-cols-2 gap-4">
                       <div className="p-4 bg-white/5 rounded-2xl">
                          <div className="text-[9px] text-gray-500 font-bold uppercase">{isRTL ? 'الإشارات' : 'Signals'}</div>

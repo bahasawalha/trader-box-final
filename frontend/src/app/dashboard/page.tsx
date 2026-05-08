@@ -15,15 +15,21 @@ import {
   Clock,
   ShieldCheck,
   Star,
-  LayoutDashboard
+  LayoutDashboard,
+  ShieldPlus,
+  Copy,
+  Share2,
+  Users
 } from "lucide-react";
 import Link from "next/link";
 
 export default function UserDashboard() {
   const { isRTL, lang } = useLanguage();
   const { user } = useAuth();
-  const [stats, setStats] = useState({ balance: 0, activeSubs: 0, winRate: 92 });
+  const [stats, setStats] = useState({ balance: 0, activeSubs: 0, winRate: 92, referralCount: 0 });
   const [recentSignals, setRecentSignals] = useState<any[]>([]);
+  const [suggestedIntel, setSuggestedIntel] = useState<any[]>([]);
+  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,20 +38,31 @@ export default function UserDashboard() {
 
   async function loadDashboardData() {
     try {
-      const [balanceData, providers] = await Promise.all([
-        apiFetch("/wallet/balance"),
-        apiFetch("/providers/top") // For simulation
+      const [statsData, signalsData, intelData] = await Promise.all([
+        apiFetch("/dashboard/stats"),
+        apiFetch("/dashboard/signals"),
+        apiFetch("/analyses/latest")
       ]);
-      setStats(prev => ({ ...prev, balance: balanceData.balance, activeSubs: 3 }));
-      // Simulation of signals
-      setRecentSignals([
-        { id: 1, symbol: "BTC/USDT", type: "BUY", entry: "64,280", tp: "68,500", status: "ACTIVE", provider: "Alpha Node" },
-        { id: 2, symbol: "ETH/USDT", type: "SELL", entry: "3,450", tp: "3,100", status: "PENDING", provider: "Pro Signal" },
-        { id: 3, symbol: "SOL/USDT", type: "BUY", entry: "142.4", tp: "160.0", status: "COMPLETED", provider: "Whale Alert" },
-      ]);
-    } catch (e) { console.error(e); }
+      
+      setStats({
+        balance: statsData.balance,
+        activeSubs: statsData.activeSubs,
+        winRate: statsData.winRate,
+        referralCount: statsData.referralCount || 0
+      });
+
+      setRecentSignals(signalsData);
+      setSuggestedIntel(intelData);
+    } catch (e) { console.error("Dashboard Load Error:", e); }
     finally { setLoading(false); }
   }
+
+  const handleCopy = () => {
+    const link = `${window.location.origin}/register?ref=${user?.referralCode}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-[#05070A] flex flex-col items-center justify-center space-y-4">
@@ -69,6 +86,11 @@ export default function UserDashboard() {
             </h1>
           </div>
           <div className="flex gap-4">
+            {user?.role === 'USER' && (
+              <Link href="/upgrade" className="px-8 py-4 rounded-2xl bg-gradient-to-r from-[#00D4FF] to-purple-500 text-black font-black text-xs uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20">
+                <ShieldPlus size={16} /> {isRTL ? 'ترقية الحساب' : 'Upgrade Account'}
+              </Link>
+            )}
             <Link href="/wallet" className="px-8 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-black text-xs uppercase tracking-widest flex items-center gap-2">
               <Wallet size={16} /> {isRTL ? 'إيداع سريع' : 'Quick Deposit'}
             </Link>
@@ -90,11 +112,61 @@ export default function UserDashboard() {
             trend="Stable" 
           />
           <StatCard 
-            icon={<Star className="text-yellow-400" />} 
-            label={isRTL ? 'معدل النجاح' : 'System Win-Rate'} 
+            icon={<TrendingUp className="text-[#00FF9C]" />} 
+            label={isRTL ? 'نسبة النجاح' : 'System Accuracy'} 
             value={`${stats.winRate}%`} 
-            trend="Institutional" 
+            trend="High" 
           />
+        </section>
+
+        {/* 🔗 Referral Program Section */}
+        <section className="bg-gradient-to-br from-[#121826] to-black border border-white/5 rounded-[40px] p-8 md:p-12 relative overflow-hidden group">
+           <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Share2 size={120} className="text-[#00D4FF]" />
+           </div>
+           
+           <div className="relative z-10 flex flex-col lg:flex-row justify-between items-center gap-12">
+              <div className="space-y-4 max-w-xl">
+                 <div className="flex items-center gap-3 text-[#00D4FF] text-[10px] font-black uppercase tracking-[0.4em]">
+                    <Star size={14} fill="#00D4FF" /> {isRTL ? 'برنامج الشراكة النخبوية' : 'ELITE AFFILIATE PROGRAM'}
+                 </div>
+                 <h2 className="text-3xl md:text-4xl font-black">{isRTL ? 'ادعُ أصدقاءك واحصل على مكافآت' : 'Invite Your Network, Scale Your Wealth'}</h2>
+                 <p className="text-gray-500 leading-relaxed">
+                   {isRTL ? 'شارك رابط الإحالة الخاص بك مع الآخرين واكسب عمولات على كل عملية اشتراك تتم من خلالك في نظام TraderBox.' : 'Share your unique operational link with your network and earn premium commissions on every successful subscription within the TraderBox ecosystem.'}
+                 </p>
+              </div>
+
+              <div className="w-full lg:w-auto space-y-6">
+                 <div className="flex items-center gap-8 px-10 py-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-[30px] shadow-2xl">
+                    <div className="flex flex-col">
+                       <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1">{isRTL ? 'إجمالي الإحالات' : 'TOTAL REFERRED'}</span>
+                       <div className="flex items-center gap-3">
+                          <Users size={20} className="text-[#00D4FF]" />
+                          <span className="text-3xl font-black text-white">{stats.referralCount}</span>
+                       </div>
+                    </div>
+                    <div className="w-px h-12 bg-white/10" />
+                    <div className="flex flex-col">
+                       <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1">{isRTL ? 'رابط الإحالة الخاص بك' : 'YOUR OPERATIONAL LINK'}</span>
+                       <div className="flex items-center gap-4 bg-black/40 px-4 py-2 rounded-xl border border-white/5">
+                          <code className="text-[11px] font-mono text-[#00D4FF]">{user?.referralCode}</code>
+                          <button 
+                            onClick={handleCopy}
+                            className={`p-2 rounded-lg transition-all ${copied ? 'bg-[#00FF9C] text-black' : 'bg-white/5 hover:bg-white/10 text-white'}`}
+                          >
+                            {copied ? <ShieldCheck size={14} /> : <Copy size={14} />}
+                          </button>
+                       </div>
+                    </div>
+                 </div>
+                 <button 
+                   onClick={handleCopy}
+                   className="w-full py-5 rounded-[25px] bg-[#00D4FF] text-black font-black text-xs uppercase tracking-[0.3em] hover:shadow-[0_0_40px_rgba(0,212,255,0.4)] transition-all flex items-center justify-center gap-3"
+                 >
+                   <Share2 size={16} /> {isRTL ? 'نسخ رابط الدعوة' : 'COPY RECRUITMENT LINK'}
+                 </button>
+              </div>
+           </div>
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -117,14 +189,24 @@ export default function UserDashboard() {
 
           {/* 🏹 Quick Actions & News */}
           <div className="space-y-8">
-            <h3 className="text-2xl font-black tracking-tight">{isRTL ? 'التحليلات المقترحة' : 'Suggested Intel'}</h3>
             <div className="bg-[#121826] border border-white/5 rounded-[40px] p-8 space-y-6">
               <div className="space-y-4">
-                <IntelItem title={isRTL ? 'تقرير حركة الحيتان' : 'Whale Movement Report'} date="2h ago" />
-                <IntelItem title={isRTL ? 'توقعات الفائدة الفيدرالية' : 'FED Rate Prediction'} date="5h ago" />
-                <IntelItem title={isRTL ? 'تحليل تقني: ETH 2.0' : 'Technical: ETH 2.0'} date="Yesterday" />
+                {suggestedIntel.length > 0 ? (
+                  suggestedIntel.map((intel) => (
+                    <Link href={`/analyses/${intel.id}`} key={intel.id}>
+                      <IntelItem 
+                        title={intel.title} 
+                        date={`${Math.floor((Date.now() - new Date(intel.createdAt).getTime()) / (1000 * 60 * 60))}h ago`} 
+                      />
+                    </Link>
+                  ))
+                ) : (
+                  <div className="text-[10px] text-gray-600 italic py-4">
+                    {isRTL ? 'لا توجد تحليلات مقترحة حالياً.' : 'No suggested intel available yet.'}
+                  </div>
+                )}
               </div>
-              <Link href="/analysis" className="w-full py-4 rounded-2xl bg-white/5 text-center text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all block">
+              <Link href="/analyses" className="w-full py-4 rounded-2xl bg-white/5 text-center text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all block">
                 {isRTL ? 'دخول مركز الأبحاث' : 'Enter Research Center'}
               </Link>
             </div>

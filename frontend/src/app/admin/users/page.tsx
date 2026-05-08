@@ -23,7 +23,7 @@ export default function UsersPage() {
 
   async function changeRole(userId: string, newRole: string) {
     try {
-      await apiFetch("/admin/users/role", {
+      await apiFetch("/admin/user/role", {
         method: "POST",
         body: JSON.stringify({ userId, role: newRole })
       });

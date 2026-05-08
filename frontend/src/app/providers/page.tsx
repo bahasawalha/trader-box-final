@@ -57,13 +57,22 @@ export default function ProvidersDirectory() {
         
         {/* 🏔️ Header & Back Link */}
         <div className="space-y-6">
-          <button 
+          <motion.button 
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-500 hover:text-[#00D4FF] transition-colors text-[10px] font-black uppercase tracking-[0.2em] group"
+            animate={{ 
+              opacity: [0.5, 1, 0.5],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{ 
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="flex items-center gap-2 text-[#00D4FF] hover:text-white transition-colors text-[10px] font-black uppercase tracking-[0.2em] group"
           >
             <ArrowLeft size={16} className={`${isRTL ? 'rotate-180' : ''} group-hover:translate-x-[-4px] transition-transform`} />
             {isRTL ? 'الرجوع' : 'Back to Terminal'}
-          </button>
+          </motion.button>
 
           <header className="flex flex-col md:flex-row justify-between items-end gap-8">
             <div className="space-y-4">
@@ -91,11 +100,15 @@ export default function ProvidersDirectory() {
         </div>
 
         {/* 📊 Metrics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-           <QuickStat icon={<Users className="text-[#00D4FF]" />} label={isRTL ? 'المزودين النشطين' : 'Active Operatives'} value={providers.length} />
-           <QuickStat icon={<Star className="text-yellow-400" />} label={isRTL ? 'أعلى نسبة نجاح' : 'Top Win Rate'} value="94.2%" />
-           <QuickStat icon={<ShieldCheck className="text-[#00FF9C]" />} label={isRTL ? 'حالة التدقيق' : 'Audit Status'} value="Secured" />
-        </div>
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <QuickStat icon={<Users className="text-[#00D4FF]" />} label={isRTL ? 'المزودين النشطين' : 'Active Operatives'} value={providers.length} />
+            <QuickStat 
+              icon={<Star className="text-yellow-400" />} 
+              label={isRTL ? 'أعلى نجاح شهري' : 'Top Monthly Success'} 
+              value={`${Math.max(...providers.map(p => parseFloat(p.score || 0)), 0).toFixed(1)}%`} 
+            />
+            <QuickStat icon={<ShieldCheck className="text-[#00FF9C]" />} label={isRTL ? 'حالة التدقيق' : 'Audit Status'} value="Secured" />
+         </div>
 
         {/* 🃏 Providers Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -137,19 +150,22 @@ function ProviderDirectoryCard({ provider, delay, isRTL }: any) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
       whileHover={{ y: -10 }}
-      className="bg-gradient-to-br from-[#121826] to-[#0B0F1A] border border-white/10 rounded-[40px] p-8 relative overflow-hidden group shadow-3xl"
+      className="bg-gradient-to-br from-[#121826] to-[#0B0F1A] border border-white/10 rounded-[40px] p-8 relative overflow-hidden group shadow-3xl flex flex-col gap-8"
     >
       <div className={`absolute top-0 ${isRTL ? 'left-0' : 'right-0'} p-8 opacity-5 group-hover:opacity-10 transition-opacity`}>
         <Users size={120} />
       </div>
 
-      <div className="relative z-10 space-y-6">
+      <div className="relative z-10 space-y-6 flex-1">
         <div className="flex items-center gap-4">
            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#00D4FF]/20 to-purple-500/20 border border-white/10 flex items-center justify-center text-2xl font-bold uppercase shadow-2xl">
              {provider.name?.charAt(0) || "U"}
            </div>
            <div>
-             <h3 className="text-xl font-bold group-hover:text-[#00D4FF] transition-colors">{provider.name || "Anonymous Operative"}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xl font-bold group-hover:text-[#00D4FF] transition-colors">{provider.name || "Anonymous Operative"}</h3>
+              <ShieldCheck size={18} className="text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.5)]" />
+            </div>
              <div className="flex items-center gap-2 mt-1">
                 <div className="w-2 h-2 rounded-full bg-green-400"></div>
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{isRTL ? 'عضو نشط' : 'Active Member'}</span>
@@ -159,13 +175,24 @@ function ProviderDirectoryCard({ provider, delay, isRTL }: any) {
 
         <div className="grid grid-cols-2 gap-4">
            <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-             <div className="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">{isRTL ? 'نسبة النجاح' : 'Win Rate'}</div>
-             <div className="text-lg font-mono font-bold text-[#00FF9C]">94.2%</div>
+             <div className="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">{isRTL ? 'النجاح الشهري' : 'Monthly Success'}</div>
+             <div className="text-lg font-mono font-bold text-[#00FF9C]">{provider.score}%</div>
            </div>
            <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-             <div className="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">{isRTL ? 'التوصيات' : 'Total Recs'}</div>
-             <div className="text-lg font-mono font-bold">{provider.recommendationCount || 120}</div>
+             <div className="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">{isRTL ? 'إشارات (30ي)' : 'Signals (30d)'}</div>
+             <div className="text-lg font-mono font-bold">{provider.recommendationCount}</div>
            </div>
+        </div>
+      </div>
+
+      <div className="space-y-6 relative z-10">
+        {/* 🏢 Jumbo Sponsor Banner */}
+        <div className="w-full flex items-center gap-4 px-6 py-4 bg-white/5 backdrop-blur-3xl border border-[#00D4FF]/30 rounded-[25px] shadow-[0_0_30px_rgba(0,212,255,0.15)] group/sponsor hover:bg-white/10 hover:border-[#00D4FF]/50 transition-all cursor-pointer">
+          <div className="w-3 h-3 rounded-full bg-[#00D4FF] animate-pulse shadow-[0_0_20px_#00D4FF]" />
+          <div className="flex flex-col">
+            <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[#00D4FF] leading-none mb-2">{isRTL ? 'برعاية' : 'SPONSORED BY'}</span>
+            <div className="text-xl font-black text-white tracking-tighter group-hover:scale-105 transition-transform leading-none">BITGET</div>
+          </div>
         </div>
 
         <Link href={`/providers/${provider.id}`} className="block">
