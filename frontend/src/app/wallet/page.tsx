@@ -37,7 +37,7 @@ export default function WalletPage() {
         apiFetch("/wallet/transactions"),
         apiFetch("/deposit/methods")
       ]);
-      setBalance(b.balance);
+      setBalance(Number(b.balance));
       setTransactions(t);
       setMethods(m);
       if (m.length > 0) setSelectedMethod(m[0]);
@@ -170,8 +170,8 @@ export default function WalletPage() {
                   <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors group">
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tx.amount > 0 ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'}`}>
-                          {tx.amount > 0 ? <ArrowDownLeft size={16} className={isRTL ? 'rotate-180' : ''} /> : <ArrowUpRight size={16} className={isRTL ? 'rotate-180' : ''} />}
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${Number(tx.amount) > 0 ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'}`}>
+                          {Number(tx.amount) > 0 ? <ArrowDownLeft size={16} className={isRTL ? 'rotate-180' : ''} /> : <ArrowUpRight size={16} className={isRTL ? 'rotate-180' : ''} />}
                         </div>
                         <span className="font-bold text-sm">{tx.type}</span>
                       </div>
@@ -179,11 +179,11 @@ export default function WalletPage() {
                     <td className="px-8 py-5 text-xs text-gray-500 font-mono">
                       {new Date(tx.createdAt).toLocaleString()}
                     </td>
-                    <td className={`px-8 py-5 text-right rtl:text-left font-bold text-sm ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(2)}$
+                    <td className={`px-8 py-5 text-right rtl:text-left font-bold text-sm ${Number(tx.amount) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {Number(tx.amount) > 0 ? '+' : ''}{Number(tx.amount).toFixed(2)}$
                     </td>
                     <td className="px-8 py-5 text-right rtl:text-left font-mono text-xs text-gray-400">
-                      ${tx.balanceAfter.toFixed(2)}
+                      ${Number(tx.balanceAfter).toFixed(2)}
                     </td>
                   </tr>
                 ))}
