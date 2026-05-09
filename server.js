@@ -1306,6 +1306,30 @@ app.get("/analyst/reports/my", authMiddleware, async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+app.put("/analyst/reports/:id", authMiddleware, async (req, res) => {
+  if (req.user.role !== 'ANALYST') return res.status(403).json({ error: "Access denied" });
+  const { id } = req.params;
+  const { title, content, image } = req.body;
+  try {
+    const report = await prisma.analysis.update({
+      where: { id, analystId: req.user.userId }, // Ensure the analyst owns the report
+      data: { title, content, image }
+    });
+    res.json(report);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete("/analyst/reports/:id", authMiddleware, async (req, res) => {
+  if (req.user.role !== 'ANALYST') return res.status(403).json({ error: "Access denied" });
+  const { id } = req.params;
+  try {
+    await prisma.analysis.delete({
+      where: { id, analystId: req.user.userId } // Ensure the analyst owns the report
+    });
+    res.json({ message: "Report deleted successfully" });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 app.get("/analyst/stats", authMiddleware, async (req, res) => {
   if (req.user.role !== 'ANALYST') return res.status(403).json({ error: "Access denied" });
   try {
