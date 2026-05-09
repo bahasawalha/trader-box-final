@@ -9,6 +9,8 @@ const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
 const cors = require("cors");
 const axios = require("axios");
+const { Decimal } = require("decimal.js");
+const rateLimit = require("express-rate-limit");
 const { generateToken } = require("./utils/auth");
 const authMiddleware = require("./middleware/authMiddleware");
 const requireRole = require("./middleware/roleMiddleware");
@@ -34,32 +36,53 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Ensure temp directory exists
+const tempDir = path.join(__dirname, "temp");
+const idempotencyDir = path.join(tempDir, "idempotency");
+if (!fs.existsSync(idempotencyDir)) fs.mkdirSync(idempotencyDir, { recursive: true });
+
 // ==========================
-// 🛡️ IDEMPOTENCY SYSTEM
+// 🛡️ IDEMPOTENCY SYSTEM (Persistent)
 // ==========================
-const processedRequests = new Set();
 function idempotencyMiddleware(req, res, next) {
   const key = req.headers["x-idempotency-key"];
   if (key) {
-    if (processedRequests.has(key)) return res.status(409).json({ error: "Duplicate request detected" });
-    res.on("finish", () => { if (res.statusCode < 400) processedRequests.add(key); });
+    const keyPath = path.join(idempotencyDir, key);
+    if (fs.existsSync(keyPath)) {
+      return res.status(409).json({ error: "Duplicate request detected" });
+    }
+    // We mark it as processed ONLY if the request succeeds
+    res.on("finish", () => { 
+      if (res.statusCode < 400) {
+        fs.writeFileSync(keyPath, JSON.stringify({ timestamp: new Date() }));
+      } 
+    });
   }
   next();
 }
 
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 300, 
+  message: { error: "Too many requests from this IP, please try again after 15 minutes" }
+});
+
 // ==========================
 // 🌐 MIDDLEWARES
 // ==========================
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:3000", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
+app.use(globalLimiter);
 app.use(idempotencyMiddleware);
 app.use("/uploads", express.static("uploads"));
 
-// --- UPLOAD ENDPOINT ---
-app.post("/upload", upload.single("file"), (req, res) => {
+// --- PROTECTED UPLOAD ENDPOINT ---
+app.post("/upload", authMiddleware, upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  const fileUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+  if (req.user.role === 'USER') return res.status(403).json({ error: "Unauthorized upload" });
+  
+  const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
   res.json({ url: fileUrl });
 });
 
@@ -91,10 +114,24 @@ async function recordFinancialMutation(tx, walletId, type, amount, referenceId) 
     where: { id: walletId },
     include: { entries: { orderBy: { createdAt: "desc" }, take: 1 } }
   });
-  const currentBalance = wallet.entries[0]?.balanceAfter || 0;
-  const newBalance = currentBalance + amount;
-  if (newBalance < -0.000001) throw new Error(`Insufficient funds: Wallet ${walletId}`);
-  return tx.ledgerEntry.create({ data: { walletId, type, amount, balanceAfter: newBalance, referenceId } });
+  
+  const currentBalance = new Decimal(wallet.entries[0]?.balanceAfter || 0);
+  const mutationAmount = new Decimal(amount);
+  const newBalance = currentBalance.plus(mutationAmount);
+  
+  if (newBalance.lt(0)) {
+    throw new Error(`Insufficient funds: Wallet ${walletId}`);
+  }
+  
+  return tx.ledgerEntry.create({ 
+    data: { 
+      walletId, 
+      type, 
+      amount: mutationAmount.toNumber(), 
+      balanceAfter: newBalance.toNumber(), 
+      referenceId 
+    } 
+  });
 }
 
 async function createAuditLog(adminId, action, targetId, details, req) {
@@ -125,8 +162,8 @@ app.post("/auth/register", async (req, res) => {
       return newUser;
     });
     const token = generateToken(user);
-    res.cookie("token", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" })
-       .json({ user: { id: user.id, email: user.email, role: user.role } });
+    res.cookie("token", token, { httpOnly: true, sameSite: "none", secure: true })
+       .json({ token, user: { id: user.id, email: user.email, role: user.role } });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -142,8 +179,8 @@ app.post("/auth/login", async (req, res) => {
 
     await prisma.user.update({ where: { id: user.id }, data: { lastIp: req.ip } });
     const token = generateToken(user);
-    res.cookie("token", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" })
-       .json({ user: { id: user.id, email: user.email, role: user.role } });
+    res.cookie("token", token, { httpOnly: true, sameSite: "none", secure: true })
+       .json({ token, user: { id: user.id, email: user.email, role: user.role } });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -170,7 +207,8 @@ app.get("/providers/top", async (req, res) => {
             closedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
           }
         },
-        providerSubs: { where: { endDate: { gt: new Date() } } }
+        providerSubs: { where: { endDate: { gt: new Date() } } },
+        sponsors: { where: { isActive: true } }
       },
       take: 20 
     });
@@ -188,10 +226,10 @@ app.get("/providers/top", async (req, res) => {
         avatar: p.avatar,
         score: winRate,
         subscribers: p.providerSubs.length,
-        recommendationCount: total
+        recommendationCount: total,
+        sponsors: p.sponsors
       };
     });
-    
     res.json(formatted);
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
@@ -559,7 +597,13 @@ app.post("/admin/withdraw/reject", authMiddleware, requireRole("ADMIN"), async (
 
 app.get("/admin/users", authMiddleware, requireRole("ADMIN"), async (req, res) => {
   try {
-    const users = await prisma.user.findMany({ include: { wallet: true }, orderBy: { createdAt: "desc" } });
+    const users = await prisma.user.findMany({ 
+      include: { 
+        wallet: true,
+        sponsors: true 
+      }, 
+      orderBy: { createdAt: "desc" } 
+    });
     res.json(users);
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
@@ -568,14 +612,6 @@ app.get("/admin/audit-logs", authMiddleware, requireRole("ADMIN"), async (req, r
   try {
     const logs = await prisma.auditLog.findMany({ include: { admin: { select: { email: true } } }, orderBy: { createdAt: "desc" } });
     res.json(logs);
-  } catch (error) { res.status(500).json({ error: error.message }); }
-});
-
-app.post("/admin/sponsors", authMiddleware, requireRole("ADMIN"), async (req, res) => {
-  const { name, logo, website } = req.body;
-  try {
-    const sponsor = await prisma.sponsor.create({ data: { name, logo, website, isActive: true } });
-    res.json(sponsor);
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -733,12 +769,39 @@ app.use((err, req, res, next) => {
 // ==========================
 app.get("/providers/top", async (req, res) => {
   try {
-    const p = await prisma.user.findMany({
-      where: { role: "PROVIDER" },
-      take: 6,
-      select: { id: true, name: true, email: true, avatar: true }
+    const providers = await prisma.user.findMany({ 
+      where: { role: "PROVIDER" }, 
+      include: { 
+        recommendations: {
+          where: { 
+            status: "CLOSED",
+            closedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+          }
+        },
+        providerSubs: { where: { endDate: { gt: new Date() } } },
+        sponsors: { where: { isActive: true } }
+      },
+      take: 20 
     });
-    res.json(p);
+    
+    const formatted = providers.map(p => {
+      const wins = p.recommendations.filter(r => r.result === "WIN").length;
+      const total = p.recommendations.length;
+      const winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : "0";
+      
+      return {
+        id: p.id,
+        name: p.name || "Anonymous Operative",
+        email: p.email,
+        bio: p.bio,
+        avatar: p.avatar,
+        score: winRate,
+        subscribers: p.providerSubs.length,
+        recommendationCount: total,
+        sponsors: p.sponsors
+      };
+    });
+    res.json(formatted);
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -909,6 +972,56 @@ app.post("/admin/user/price", authMiddleware, async (req, res) => {
       where: { id: userId },
       data: { subscriptionPrice: newPrice }
     });
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ==========================
+// 🤝 Sponsors Management
+// ==========================
+
+app.get("/sponsors", async (req, res) => {
+  const { providerId } = req.query;
+  try {
+    const where = { isActive: true };
+    if (providerId === 'all') {
+      // Return all sponsors for admin
+    } else {
+      where.providerId = providerId || null;
+    }
+    const sponsors = await prisma.sponsor.findMany({
+      where,
+      orderBy: { createdAt: "desc" }
+    });
+    res.json(sponsors);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post("/admin/sponsors", authMiddleware, async (req, res) => {
+  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: "Access denied" });
+  const { name, logo, url, providerId } = req.body;
+  console.log("Attempting to create sponsor:", { name, logo, url, providerId });
+  try {
+    const sponsor = await prisma.sponsor.create({
+      data: { 
+        name, 
+        logo, 
+        url: url || "", 
+        isActive: true,
+        providerId: providerId || null
+      }
+    });
+    res.json(sponsor);
+  } catch (error) { 
+    console.error("Sponsor Creation Error:", error);
+    res.status(500).json({ error: error.message }); 
+  }
+});
+
+app.delete("/admin/sponsors/:id", authMiddleware, async (req, res) => {
+  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: "Access denied" });
+  try {
+    await prisma.sponsor.delete({ where: { id: req.params.id } });
     res.json({ success: true });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
@@ -1319,8 +1432,8 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   setInterval(async () => {
     try { await fetchCryptoPrices(); } catch (e) { console.error("Price fetch error:", e.message); }
-  }, 30000);
+  }, 5000); // 5 seconds
   setInterval(async () => {
     try { await processRecommendations(); } catch (e) { console.error("Engine error:", e.message); }
-  }, 60000);
+  }, 10000); // 10 seconds
 });

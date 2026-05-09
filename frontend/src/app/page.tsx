@@ -45,6 +45,7 @@ import {
   Lightbulb,
   ExternalLink,
   Smartphone,
+  Briefcase,
   Gift
 } from "lucide-react";
 import EconomicCalendarTicker from "@/components/EconomicCalendarTicker";
@@ -57,6 +58,7 @@ export default function Home() {
   const [providers, setProviders] = useState<any[]>([]);
   const [analyses, setAnalyses] = useState<any[]>([]);
   const [dynamicNews, setDynamicNews] = useState<any[]>([]);
+  const [sponsors, setSponsors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [showSponsorsModal, setShowSponsorsModal] = useState(false);
@@ -88,14 +90,16 @@ export default function Home() {
 
   async function loadData() {
     try {
-      const [p, a, n] = await Promise.all([
+      const [p, a, n, s] = await Promise.all([
         apiFetch("/providers/top"),
         apiFetch("/analyses/latest"),
-        apiFetch("/news")
+        apiFetch("/news"),
+        apiFetch("/sponsors")
       ]);
       setProviders(p);
       setAnalyses(a);
       setDynamicNews(n);
+      setSponsors(s);
     } catch (error) {
       console.error("Failed to load home data:", error);
     } finally {
@@ -227,14 +231,25 @@ export default function Home() {
            <div className="bg-[#121826]/80 backdrop-blur-3xl border border-white/10 rounded-[50px] p-12">
               <div className="flex flex-col md:flex-row items-center justify-between gap-12">
                  <h3 className="text-3xl font-black shrink-0">{isRTL ? 'الشركات الراعية' : 'Official Sponsors'}</h3>
-                 <div className="flex-1 overflow-hidden relative">
+                  <div className="flex-1 overflow-hidden relative px-10">
                     <motion.div animate={{ x: isRTL ? ["0%", "-50%"] : ["0%", "50%"] }} transition={{ duration: 30, repeat: Infinity, ease: "linear" }} className="flex items-center gap-16 md:gap-32 whitespace-nowrap">
-                       <SponsorLogo name="Binance" />
-                       <SponsorLogo name="NEXUS NETWORK" />
-                       <SponsorLogo name="MetaTrader" />
-                       <SponsorLogo name="TradingView" />
+                       {sponsors.map((s, i) => (
+                         <SponsorLogo key={s.id || i} name={s.name} logo={s.logo} url={s.url} />
+                       ))}
+                       {/* Duplication for seamless loop */}
+                       {sponsors.map((s, i) => (
+                         <SponsorLogo key={`dup-${s.id || i}`} name={s.name} logo={s.logo} url={s.url} />
+                       ))}
+                       {sponsors.length === 0 && (
+                         <>
+                           <SponsorLogo name="Binance" />
+                           <SponsorLogo name="NEXUS NETWORK" />
+                           <SponsorLogo name="MetaTrader" />
+                           <SponsorLogo name="TradingView" />
+                         </>
+                       )}
                     </motion.div>
-                 </div>
+                  </div>
               </div>
            </div>
         </section>
@@ -285,13 +300,26 @@ export default function Home() {
                    </div>
 
                     {/* 🏢 Jumbo Sponsor Banner */}
-                    <div className="w-full flex items-center gap-4 px-6 py-4 bg-white/5 backdrop-blur-3xl border border-[#00D4FF]/30 rounded-[25px] shadow-[0_0_30px_rgba(0,212,255,0.15)] group/sponsor hover:bg-white/10 hover:border-[#00D4FF]/50 transition-all cursor-pointer">
-                      <div className="w-3 h-3 rounded-full bg-[#00D4FF] animate-pulse shadow-[0_0_20px_#00D4FF]" />
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[#00D4FF] leading-none mb-2">{isRTL ? 'برعاية' : 'SPONSORED BY'}</span>
-                        <div className="text-xl font-black text-white tracking-tighter group-hover:scale-105 transition-transform leading-none">BITGET</div>
-                      </div>
-                    </div>
+                    {p.sponsors?.[0] && (
+                      <a 
+                        href={p.sponsors[0].url || "#"} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center gap-4 px-6 py-4 bg-white/5 backdrop-blur-3xl border border-[#00D4FF]/30 rounded-[25px] shadow-[0_0_30px_rgba(0,212,255,0.15)] group/sponsor hover:bg-white/10 hover:border-[#00D4FF]/50 transition-all cursor-pointer"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-[#00D4FF] overflow-hidden shrink-0">
+                           {p.sponsors[0].logo?.startsWith('http') || p.sponsors[0].logo?.startsWith('/') ? (
+                              <img src={p.sponsors[0].logo} alt={p.sponsors[0].name} className="w-full h-full object-contain p-1" />
+                           ) : (
+                              <div className="w-3 h-3 rounded-full bg-[#00D4FF] animate-pulse shadow-[0_0_20px_#00D4FF]" />
+                           )}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[#00D4FF] leading-none mb-2">{isRTL ? 'برعاية' : 'SPONSORED BY'}</span>
+                          <div className="text-xl font-black text-white tracking-tighter group-hover:scale-105 transition-transform leading-none uppercase">{p.sponsors[0].name}</div>
+                        </div>
+                      </a>
+                    )}
 
                    <div className="grid grid-cols-2 gap-4">
                       <div className="p-4 bg-white/5 rounded-2xl">
@@ -818,20 +846,37 @@ function SponsorBenefit({ icon, title, desc }: any) {
   );
 }
 
-function SponsorLogo({ name }: { name: string }) {
-   const getSponsorIcon = (n: string) => {
-      if (n.includes("BINANCE")) return <Zap size={24} className="text-yellow-400" />;
-      if (n.includes("NEXUS")) return <Activity size={24} className="text-[#00FF9C]" />;
-      if (n.includes("METATRADER")) return <Cpu size={24} className="text-blue-400" />;
-      if (n.includes("TRADINGVIEW")) return <LineChart size={24} className="text-blue-500" />;
-      return <Cpu size={24} />;
+function SponsorLogo({ name, logo, url }: { name: string, logo?: string, url?: string }) {
+   const isUrl = logo?.startsWith('http') || logo?.startsWith('/');
+   
+   const getSponsorIcon = (n: string, l?: string) => {
+      const iconKey = (l || n).toUpperCase();
+      if (iconKey.includes("BINANCE") || iconKey.includes("ZAP")) return <Zap size={24} className="text-yellow-400" />;
+      if (iconKey.includes("NEXUS") || iconKey.includes("ACTIVITY")) return <Activity size={24} className="text-[#00FF9C]" />;
+      if (iconKey.includes("METATRADER") || iconKey.includes("CPU")) return <Cpu size={24} className="text-blue-400" />;
+      if (iconKey.includes("TRADINGVIEW") || iconKey.includes("CHART")) return <LineChart size={24} className="text-blue-500" />;
+      if (iconKey.includes("SHIELD")) return <Shield size={24} className="text-[#00D4FF]" />;
+      return <Briefcase size={24} className="text-gray-400" />;
    };
-   return (
-      <motion.div animate={{ opacity: [0.3, 1, 0.3], scale: [0.98, 1.02, 0.98] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: Math.random() * 2 }} className="flex items-center gap-4">
-         <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">{getSponsorIcon(name.toUpperCase())}</div>
+
+   const content = (
+      <motion.div animate={{ opacity: [0.3, 1, 0.3], scale: [0.98, 1.02, 0.98] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: Math.random() * 2 }} className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity">
+         <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden">
+            {isUrl ? (
+               <img src={logo} alt={name} className="w-full h-full object-contain p-2" />
+            ) : (
+               getSponsorIcon(name, logo)
+            )}
+         </div>
          <span className="font-black text-2xl tracking-tighter uppercase text-gray-600">{name}</span>
       </motion.div>
    );
+
+   if (url && (url.startsWith('http') || url.startsWith('/'))) {
+      return <a href={url} target="_blank" rel="noopener noreferrer">{content}</a>;
+   }
+
+   return content;
 }
 
 function FooterLink({ icon, label, onClick }: any) {

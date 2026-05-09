@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, API_URL } from "@/lib/api";
 import { useLanguage } from "@/context/LanguageContext";
 import { 
   Shield, 
@@ -27,7 +27,10 @@ import {
   MessageSquare,
   DollarSign,
   Briefcase,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  ImagePlus,
+  Trash2
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -37,6 +40,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ totalUsers: 0, pendingDeposits: 0, platformRevenue: 0, activeSignals: 0 });
   const [pendingDeposits, setPendingDeposits] = useState<any[]>([]);
   const [sponsorshipRequests, setSponsorshipRequests] = useState<any[]>([]);
+  const [sponsors, setSponsors] = useState<any[]>([]);
+  const [newSponsor, setNewSponsor] = useState({ name: '', logo: '', url: '', providerId: '' });
   const [users, setUsers] = useState<any[]>([]);
   const [roleRequests, setRoleRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,17 +56,19 @@ export default function AdminDashboard() {
   async function loadAllData() {
     setLoading(true);
     try {
-      const [d, u, s, r, st, cfg] = await Promise.all([
+      const [d, u, sr, sp, r, st, cfg] = await Promise.all([
         apiFetch("/admin/deposits/pending"),
         apiFetch("/admin/users"),
         apiFetch("/admin/sponsorships"),
+        apiFetch("/sponsors?providerId=all"),
         apiFetch("/admin/role-requests"),
         apiFetch("/admin/stats"),
         apiFetch("/admin/settings")
       ]);
       setPendingDeposits(d);
       setUsers(u);
-      setSponsorshipRequests(s);
+      setSponsorshipRequests(sr);
+      setSponsors(sp || []);
       setRoleRequests(r);
       setStats(st);
       setConfig(cfg);
@@ -184,6 +191,44 @@ export default function AdminDashboard() {
     } catch (e: any) { alert(e.message); }
   }
 
+  async function addSponsor() {
+    console.log("Attempting to add sponsor:", newSponsor);
+    if (!newSponsor.name || !newSponsor.logo) {
+      alert(isRTL ? "يرجى إدخال اسم الشركة ورابط الشعار!" : "Please enter company name and logo URL!");
+      return;
+    }
+    try {
+      const res = await apiFetch("/admin/sponsors", { 
+        method: "POST", 
+        body: JSON.stringify({
+          ...newSponsor,
+          url: newSponsor.url || "#" // Ensure url is not empty if DB requires it
+        }) 
+      });
+      const assignedTo = newSponsor.providerId 
+        ? (users.find(u => u.id === newSponsor.providerId)?.name || newSponsor.providerId)
+        : (isRTL ? "الصفحة الرئيسية" : "Homepage");
+
+      console.log("Sponsor added successfully:", res);
+      setNewSponsor({ name: '', logo: '', url: '', providerId: '' });
+      await loadAllData();
+      alert(isRTL 
+        ? `تم إضافة الشريك "${res.name}" وتخصيصه لـ (${assignedTo}) بنجاح!` 
+        : `Sponsor "${res.name}" added and assigned to (${assignedTo}) successfully!`);
+    } catch (e: any) { 
+      console.error("Add sponsor failed:", e);
+      alert(isRTL ? `فشل الإضافة: ${e.message}` : `Failed to add: ${e.message}`); 
+    }
+  }
+
+  async function deleteSponsor(id: string) {
+    if (!confirm(isRTL ? "حذف الشريك؟" : "Delete partner?")) return;
+    try {
+      await apiFetch(`/admin/sponsors/${id}`, { method: "DELETE" });
+      loadAllData();
+    } catch (e: any) { alert(e.message); }
+  }
+
   if (loading) return (
     <div className="min-h-screen bg-[#05070A] flex flex-col items-center justify-center space-y-4">
       <RefreshCw className="text-[#00D4FF] animate-spin" size={32} />
@@ -225,7 +270,7 @@ export default function AdminDashboard() {
                 <AdminStat icon={<Users />} label={isRTL ? 'إجمالي المستخدمين' : 'Total Users'} value={(stats.totalUsers || 0).toLocaleString()} color="border-blue-500/20" />
                 <AdminStat icon={<AlertCircle />} label={isRTL ? 'إيداعات معلقة' : 'Pending Audits'} value={(stats.pendingDeposits || 0).toString()} color="border-yellow-500/20" />
                 <AdminStat icon={<TrendingUp />} label={isRTL ? 'أرباح المنصة' : 'Total Revenue'} value={`$${(stats.platformRevenue || 0).toLocaleString()}`} color="border-green-500/20" />
-                <AdminStat icon={<Activity />} label={isRTL ? 'إشارات نشطة' : 'Active Streams'} value={stats.activeSignals.toString()} color="border-purple-500/20" />
+                <AdminStat icon={<Activity />} label={isRTL ? 'إشارات نشطة' : 'Active Streams'} value={(stats.activeSignals || 0).toString()} color="border-purple-500/20" />
               </section>
             </motion.div>
           )}
@@ -266,7 +311,129 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'partners' && (
-            <motion.div key="partners" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
+            <motion.div key="partners" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12">
+              
+              {/* 🛠️ Add Sponsor Section */}
+              <div className="bg-[#121826] border border-white/5 p-10 rounded-[40px] space-y-8 shadow-2xl">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#00D4FF]/10 flex items-center justify-center text-[#00D4FF]">
+                    <Briefcase size={24} />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-black">{isRTL ? 'إدارة الشركات الراعية' : 'Sponsors Management'}</h4>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest">{isRTL ? 'إضافة أو حذف الشركات التي تظهر في الصفحة الرئيسية' : 'Add or remove companies displayed on homepage'}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <input 
+                    type="text" 
+                    placeholder={isRTL ? "اسم الشركة" : "Company Name"}
+                    className="bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-sm outline-none focus:border-[#00D4FF] transition-all"
+                    value={newSponsor.name}
+                    onChange={(e) => setNewSponsor({...newSponsor, name: e.target.value})}
+                  />
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder={isRTL ? "رابط الشعار (أو ارفع صورة)" : "Logo URL (or upload)"}
+                        className="flex-1 bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-sm outline-none focus:border-[#00D4FF] transition-all"
+                        value={newSponsor.logo}
+                        onChange={(e) => setNewSponsor({...newSponsor, logo: e.target.value})}
+                      />
+                      <label className="shrink-0 w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-all group">
+                         <ImagePlus size={20} className="text-gray-400 group-hover:text-[#00D4FF]" />
+                         <input 
+                           type="file" 
+                           className="hidden" 
+                           accept="image/*"
+                           onChange={async (e) => {
+                             const file = e.target.files?.[0];
+                             if (!file) return;
+                             const formData = new FormData();
+                             formData.append('file', file);
+                             try {
+                               const res = await fetch(`${API_URL}/upload`, {
+                                 method: 'POST',
+                                 body: formData
+                               });
+                               const data = await res.json();
+                               setNewSponsor({...newSponsor, logo: data.url});
+                             } catch (err) {
+                               alert(isRTL ? "فشل الرفع" : "Upload failed");
+                             }
+                           }}
+                         />
+                      </label>
+                    </div>
+                    {newSponsor.logo && (newSponsor.logo.startsWith('http') || newSponsor.logo.startsWith('/')) && (
+                      <div className="px-4 flex items-center gap-2">
+                         <div className="w-6 h-6 rounded-lg bg-white/5 overflow-hidden border border-white/10">
+                            <img src={newSponsor.logo} className="w-full h-full object-contain" alt="Preview" />
+                         </div>
+                         <span className="text-[9px] text-gray-500 truncate max-w-[150px]">{newSponsor.logo}</span>
+                      </div>
+                    )}
+                  </div>
+                  <input 
+                    type="text" 
+                    placeholder={isRTL ? "رابط الموقع (Website URL)" : "Website URL"}
+                    className="bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-sm outline-none focus:border-[#00D4FF] transition-all"
+                    value={newSponsor.url}
+                    onChange={(e) => setNewSponsor({...newSponsor, url: e.target.value})}
+                  />
+                  <select
+                    className="bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-sm outline-none focus:border-[#00D4FF] transition-all text-gray-400"
+                    value={newSponsor.providerId}
+                    onChange={(e) => setNewSponsor({...newSponsor, providerId: e.target.value})}
+                  >
+                    <option value="">{isRTL ? "الصفحة الرئيسية (عام)" : "Homepage (Global)"}</option>
+                    {users.filter(u => u.role === 'PROVIDER').map(p => (
+                      <option key={p.id} value={p.id}>{p.name || p.email} ({isRTL ? 'مزود' : 'Provider'})</option>
+                    ))}
+                  </select>
+                  <button 
+                    onClick={addSponsor}
+                    className="bg-[#00D4FF] text-black font-black py-4 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(0,212,255,0.3)]"
+                  >
+                    {isRTL ? 'إضافة الشريك' : 'ADD SPONSOR'}
+                  </button>
+                </div>
+
+                {/* 📋 Active Sponsors Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 pt-8 border-t border-white/5">
+                  {sponsors.map(s => (
+                    <div key={s.id} className="bg-black/30 p-6 rounded-[30px] border border-white/5 flex flex-col items-center gap-4 group relative">
+                       <button 
+                        onClick={() => deleteSponsor(s.id)}
+                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                       >
+                         <X size={14} />
+                       </button>
+                       <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-[#00D4FF] overflow-hidden">
+                         {s.logo?.startsWith('http') || s.logo?.startsWith('/') ? (
+                           <img src={s.logo} alt={s.name} className="w-full h-full object-contain p-1" />
+                         ) : (
+                           <Briefcase size={20} />
+                         )}
+                       </div>
+                       <div className="text-center">
+                         <div className="text-[9px] font-black uppercase tracking-widest truncate w-full">{s.name}</div>
+                         <div className="text-[7px] text-gray-500 font-bold uppercase tracking-tight">
+                           {s.providerId ? (users.find(u => u.id === s.providerId)?.name || 'Provider') : (isRTL ? 'الرئيسية' : 'Homepage')}
+                         </div>
+                       </div>
+                    </div>
+                  ))}
+                  {sponsors.length === 0 && (
+                    <div className="col-span-full text-center py-4 text-gray-600 text-[10px] font-black uppercase tracking-widest italic">
+                      {isRTL ? 'لا توجد شركات راعية حالياً' : 'No active sponsors yet'}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="flex justify-between items-center">
                 <h3 className="text-3xl font-black">{isRTL ? 'طلبات الرعاية' : 'Sponsorship Requests'}</h3>
                 <div className="text-[10px] text-[#00D4FF] font-black uppercase tracking-widest bg-[#00D4FF]/10 px-4 py-2 rounded-full border border-[#00D4FF]/20">
@@ -399,6 +566,18 @@ export default function AdminDashboard() {
                           </button>
                         )}
                       </div>
+                      {u.sponsors?.[0] && (
+                        <div className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-xl bg-[#00D4FF]/5 border border-[#00D4FF]/10 w-fit">
+                           <div className="w-5 h-5 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
+                              {u.sponsors[0].logo?.startsWith('http') || u.sponsors[0].logo?.startsWith('/') ? (
+                                <img src={u.sponsors[0].logo} alt={u.sponsors[0].name} className="w-full h-full object-contain p-0.5" />
+                              ) : (
+                                <Briefcase size={12} className="text-[#00D4FF]" />
+                              )}
+                           </div>
+                           <span className="text-[9px] font-black text-[#00D4FF] uppercase tracking-widest">{u.sponsors[0].name}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex justify-between items-center pt-4 border-t border-white/5">

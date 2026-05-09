@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -30,7 +30,7 @@ model User {
   lastWithdrawalAt DateTime?
   lastIp          String?
 
-  subscriptionPrice Float @default(29)
+  subscriptionPrice Decimal @default(29) @db.Decimal(18, 8)
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -48,6 +48,7 @@ model User {
   auditLogs       AuditLog[]
   analyses        Analysis[]
   roleRequests    RoleRequest[]
+  sponsors        Sponsor[]
 }
 
 
@@ -86,8 +87,8 @@ model LedgerEntry {
   walletId      String
   wallet        Wallet      @relation(fields: [walletId], references: [id])
   type          String
-  amount        Float
-  balanceAfter  Float
+  amount        Decimal @db.Decimal(18, 8)
+  balanceAfter  Decimal @db.Decimal(18, 8)
   referenceId   String?     // UUID of the source transaction (Deposit/Withdrawal/Sub)
   createdAt     DateTime    @default(now())
 }
@@ -101,7 +102,7 @@ model Deposit {
   id          String   @id @default(uuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id])
-  amount      Float
+  amount      Decimal @db.Decimal(18, 8)
   status      String @default("PENDING")
   method      String
   reference   String?
@@ -113,7 +114,7 @@ model Withdrawal {
   id          String   @id @default(uuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id])
-  amount      Float
+  amount      Decimal @db.Decimal(18, 8)
   status      String @default("PENDING")
   method      String
   address     String
@@ -155,9 +156,9 @@ model Recommendation {
   providerId  String
   provider    User     @relation(fields: [providerId], references: [id])
   type        String
-  entryPrice  Float
-  takeProfit  Float
-  stopLoss    Float
+  entryPrice  Decimal @db.Decimal(18, 8)
+  takeProfit  Decimal @db.Decimal(18, 8)
+  stopLoss    Decimal @db.Decimal(18, 8)
   status      String      @default("PENDING")
   result      String?
   activatedAt DateTime?
@@ -172,7 +173,7 @@ model Subscription {
   user        User     @relation(fields: [userId], references: [id])
   providerId  String
   provider    User     @relation("ProviderSubscriptions", fields: [providerId], references: [id])
-  price       Float
+  price       Decimal @db.Decimal(18, 8)
   startDate   DateTime @default(now())
   endDate     DateTime
   isActive    Boolean  @default(true)
@@ -194,12 +195,14 @@ model Analysis {
 }
 
 model Sponsor {
-  id        String   @id @default(uuid())
-  name      String
-  logo      String
-  url       String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  name       String
+  logo       String
+  url        String
+  isActive   Boolean  @default(true)
+  providerId String?
+  provider   User?    @relation(fields: [providerId], references: [id])
+  createdAt  DateTime @default(now())
 }
 
 model SponsorshipRequest {
@@ -263,6 +266,6 @@ model PaymentMethod {
 
 model AppSettings {
   id           String @id @default("global")
-  platformFee  Float  @default(30)
+  platformFee  Decimal @default(30) @db.Decimal(18, 8)
   updatedAt    DateTime @updatedAt
 }

@@ -187,13 +187,26 @@ function ProviderDirectoryCard({ provider, delay, isRTL }: any) {
 
       <div className="space-y-6 relative z-10">
         {/* 🏢 Jumbo Sponsor Banner */}
-        <div className="w-full flex items-center gap-4 px-6 py-4 bg-white/5 backdrop-blur-3xl border border-[#00D4FF]/30 rounded-[25px] shadow-[0_0_30px_rgba(0,212,255,0.15)] group/sponsor hover:bg-white/10 hover:border-[#00D4FF]/50 transition-all cursor-pointer">
-          <div className="w-3 h-3 rounded-full bg-[#00D4FF] animate-pulse shadow-[0_0_20px_#00D4FF]" />
-          <div className="flex flex-col">
-            <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[#00D4FF] leading-none mb-2">{isRTL ? 'برعاية' : 'SPONSORED BY'}</span>
-            <div className="text-xl font-black text-white tracking-tighter group-hover:scale-105 transition-transform leading-none">BITGET</div>
-          </div>
-        </div>
+        {provider.sponsors?.[0] && (
+          <a 
+            href={provider.sponsors[0].url || "#"} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-4 px-6 py-4 bg-white/5 backdrop-blur-3xl border border-[#00D4FF]/30 rounded-[25px] shadow-[0_0_30px_rgba(0,212,255,0.15)] group/sponsor hover:bg-white/10 hover:border-[#00D4FF]/50 transition-all cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-[#00D4FF] overflow-hidden shrink-0">
+               {provider.sponsors[0].logo?.startsWith('http') || provider.sponsors[0].logo?.startsWith('/') ? (
+                  <img src={provider.sponsors[0].logo} alt={provider.sponsors[0].name} className="w-full h-full object-contain p-1" />
+               ) : (
+                  <div className="w-3 h-3 rounded-full bg-[#00D4FF] animate-pulse shadow-[0_0_20px_#00D4FF]" />
+               )}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[#00D4FF] leading-none mb-2">{isRTL ? 'برعاية' : 'SPONSORED BY'}</span>
+              <div className="text-xl font-black text-white tracking-tighter group-hover:scale-105 transition-transform leading-none uppercase">{provider.sponsors[0].name}</div>
+            </div>
+          </a>
+        )}
 
         <Link href={`/providers/${provider.id}`} className="block">
           <button className="w-full py-4 rounded-2xl bg-white text-black font-black text-[11px] uppercase tracking-widest hover:bg-[#00D4FF] transition-all flex items-center justify-center gap-2 shadow-2xl">

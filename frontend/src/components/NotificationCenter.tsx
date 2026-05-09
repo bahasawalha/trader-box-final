@@ -18,7 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 
 export default function NotificationCenter() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { isRTL, t } = useLanguage();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [show, setShow] = useState(false);
@@ -49,7 +49,13 @@ export default function NotificationCenter() {
       const data = await apiFetch("/notifications");
       setNotifications(data);
       setUnreadCount(data.filter((n: any) => !n.isRead).length);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { 
+      if (e.message === "Unauthorized" || e.message === "Invalid token") {
+        logout(); // Sync app state if session expired
+      } else {
+        console.error("Failed to load notifications:", e);
+      }
+    }
   }
 
   async function markAsRead(id: string) {
