@@ -1127,30 +1127,7 @@ app.get("/api/news", async (req, res) => {
   }
 });
 
-app.get("/admin/stats", authMiddleware, async (req, res) => {
-  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: "Access denied" });
-  try {
-    const [totalUsers, pendingDeposits, activeSignals, totalDeposits] = await Promise.all([
-      prisma.user.count(),
-      prisma.deposit.count({ where: { status: "PENDING" } }),
-      prisma.recommendation.count({ where: { status: "PENDING" } }),
-      prisma.deposit.aggregate({
-        where: { status: "APPROVED" },
-        _sum: { amount: true }
-      })
-    ]);
 
-    // Mock revenue as 5% of total approved deposits for now
-    const platformRevenue = (totalDeposits._sum.amount || 0) * 0.05;
-
-    res.json({
-      totalUsers,
-      pendingDeposits,
-      activeSignals,
-      platformRevenue
-    });
-  } catch (error) { res.status(500).json({ error: error.message }); }
-});
 
 app.get("/admin/role-requests", authMiddleware, async (req, res) => {
   if (req.user.role !== 'ADMIN') {

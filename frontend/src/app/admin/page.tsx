@@ -55,25 +55,27 @@ export default function AdminDashboard() {
 
   async function loadAllData() {
     setLoading(true);
-    try {
-      const [d, u, sr, sp, r, st, cfg] = await Promise.all([
-        apiFetch("/admin/deposits/pending"),
-        apiFetch("/admin/users"),
-        apiFetch("/admin/sponsorships"),
-        apiFetch("/sponsors?providerId=all"),
-        apiFetch("/admin/role-requests"),
-        apiFetch("/admin/stats"),
-        apiFetch("/admin/settings")
-      ]);
-      setPendingDeposits(d);
-      setUsers(u);
-      setSponsorshipRequests(sr);
-      setSponsors(sp || []);
-      setRoleRequests(r);
-      setStats(st);
-      setConfig(cfg);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    
+    const fetchStat = async (url: string, setter: (data: any) => void) => {
+      try {
+        const data = await apiFetch(url);
+        setter(data);
+      } catch (e) {
+        console.error(`Error fetching ${url}:`, e);
+      }
+    };
+
+    await Promise.allSettled([
+      fetchStat("/admin/deposits/pending", setPendingDeposits),
+      fetchStat("/admin/users", setUsers),
+      fetchStat("/admin/sponsorships", setSponsorshipRequests),
+      fetchStat("/sponsors?providerId=all", (data) => setSponsors(data || [])),
+      fetchStat("/admin/role-requests", setRoleRequests),
+      fetchStat("/admin/stats", setStats),
+      fetchStat("/admin/settings", setConfig)
+    ]);
+    
+    setLoading(false);
   }
 
   async function updateFee(fee: number) {
@@ -829,6 +831,7 @@ export default function AdminDashboard() {
         </AnimatePresence>
 
       </div>
+      <div className="fixed bottom-4 right-4 text-[8px] text-gray-800 font-mono opacity-20">TRADERBOX_ADMIN_v1.0.1_STABLE</div>
     </div>
   );
 }
