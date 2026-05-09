@@ -3,20 +3,15 @@ const { setPrice } = require("./priceService");
 
 async function fetchCryptoPrices() {
   try {
-    const res = await axios.get(
-      "https://api.coingecko.com/api/v3/simple/price",
-      {
-        params: {
-          ids: "bitcoin,ethereum",
-          vs_currencies: "usd"
-        }
-      }
-    );
+    // Using Binance API instead of CoinGecko for higher rate limits
+    const res = await axios.get('https://api.binance.com/api/v3/ticker/price?symbols=["BTCUSDT","ETHUSDT"]');
 
-    const prices = {
-      BTCUSDT: res.data.bitcoin.usd,
-      ETHUSDT: res.data.ethereum.usd
-    };
+    const prices = {};
+    if (Array.isArray(res.data)) {
+      res.data.forEach(ticker => {
+        prices[ticker.symbol] = parseFloat(ticker.price);
+      });
+    }
 
     // Integration with existing priceService
     Object.keys(prices).forEach(symbol => {

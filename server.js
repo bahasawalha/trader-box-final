@@ -279,6 +279,10 @@ app.get("/news", async (req, res) => {
     const response = await axios.get('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
     const articles = response.data.Data;
     
+    if (!Array.isArray(articles)) {
+      throw new Error("Invalid news API response");
+    }
+    
     // Format to simple text for our ticker
     const news = articles.slice(0, 15).map(article => ({
       id: article.id,
