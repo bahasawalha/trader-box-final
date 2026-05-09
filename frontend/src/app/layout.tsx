@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   description: "Institutional-grade financial trading ecosystem",
 };
 
+import { Toaster } from "react-hot-toast";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -23,6 +25,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#0B0F1A]">
         <LanguageProvider>
           <AuthProvider>
+            <Toaster position="top-center" reverseOrder={false} />
             <HeaderWrapper />
             <main className="flex-1">
               {children}
