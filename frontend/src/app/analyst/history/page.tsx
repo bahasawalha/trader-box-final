@@ -231,7 +231,3 @@ export default function AnalystHistory() {
     </div>
   );
 }
-
-    </div>
-  );
-}
