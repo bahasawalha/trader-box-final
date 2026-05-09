@@ -544,14 +544,24 @@ app.post("/subscribe", authMiddleware, async (req, res) => {
 // ==========================
 app.get("/admin/stats", authMiddleware, requireRole("ADMIN"), async (req, res) => {
   try {
-    const [users, wallets, deposits, recommendations] = await Promise.all([
+    const [userCount, pendingDeposits, activeSignals, adminUser] = await Promise.all([
       prisma.user.count(),
-      prisma.wallet.findMany({ include: { entries: { orderBy: { createdAt: "desc" }, take: 1 } } }),
       prisma.deposit.count({ where: { status: "PENDING" } }),
-      prisma.recommendation.count({ where: { status: "ACTIVE" } })
+      prisma.recommendation.count({ where: { status: "ACTIVE" } }),
+      prisma.user.findFirst({ 
+        where: { role: "ADMIN" },
+        include: { wallet: { include: { entries: { orderBy: { createdAt: "desc" }, take: 1 } } } }
+      })
     ]);
-    const totalLiquidity = wallets.reduce((acc, w) => acc + (w.entries[0]?.balanceAfter || 0), 0);
-    res.json({ users, totalBalance: totalLiquidity, pendingDeposits: deposits, activeSignals: recommendations });
+    
+    const platformRevenue = adminUser?.wallet?.entries[0]?.balanceAfter || 0;
+
+    res.json({ 
+      totalUsers: userCount, 
+      pendingDeposits, 
+      activeSignals, 
+      platformRevenue 
+    });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
