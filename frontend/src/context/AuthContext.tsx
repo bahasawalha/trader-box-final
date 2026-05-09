@@ -43,10 +43,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await apiFetch('/auth/logout', { method: 'POST' });
-      setUser(null);
-      window.location.href = '/';
     } catch (error) {
       console.error('Logout failed', error);
+    } finally {
+      if (typeof window !== 'undefined') localStorage.removeItem("token");
+      setUser(null);
+      window.location.href = '/';
     }
   };
 

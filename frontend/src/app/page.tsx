@@ -198,7 +198,7 @@ export default function Home() {
         <section className="relative pt-8 pb-16 px-6 min-h-[60vh] flex items-center justify-center overflow-hidden text-center">
            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-[#00D4FF]/10 blur-[120px] -z-10 animate-pulse" />
            <motion.div style={{ opacity: heroOpacity }} className="max-w-7xl mx-auto space-y-12">
-              <h1 className="text-7xl md:text-[140px] font-black tracking-tighter leading-[0.75] bg-gradient-to-b from-white via-white to-white/20 bg-clip-text text-transparent">
+              <h1 className="text-6xl md:text-[110px] font-black tracking-tighter leading-[0.75] bg-gradient-to-b from-white via-white to-white/20 bg-clip-text text-transparent">
                 {isRTL ? 'صندوق' : 'TRADER'}<br/>
                 <motion.span animate={{ color: ["#00D4FF", "#FFFFFF", "#00D4FF"], textShadow: ["0 0 20px rgba(0,212,255,0.2)", "0 0 50px rgba(0,212,255,0.6)", "0 0 20px rgba(0,212,255,0.2)"] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }} className="text-[#00D4FF] inline-block">
                   {isRTL ? 'المتداول' : 'BOX'}
@@ -257,7 +257,7 @@ export default function Home() {
         {/* Restore About/Providers/Intelligence Sections */}
         <section id="about" className="max-w-7xl mx-auto px-6 py-16 space-y-16">
            <div className="text-center space-y-8">
-              <h2 className="text-6xl md:text-8xl font-black tracking-tighter leading-tight">{isRTL ? 'منصة واحدة... لكل ما يحتاجه المتداول' : 'One Platform... For Everything a Trader Needs'}</h2>
+              <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-tight">{isRTL ? 'منصة واحدة... لكل ما يحتاجه المتداول' : 'One Platform... For Everything a Trader Needs'}</h2>
               <p className="text-gray-500 text-xl max-w-3xl mx-auto leading-relaxed">{isRTL ? 'يجمع TraderBox بين الإشارات والتحليلات والتدريب في مكان واحد.' : 'TraderBox brings together signals, analytics, and training in one place.'}</p>
            </div>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -273,7 +273,7 @@ export default function Home() {
            <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
               <div className="space-y-4">
                  <div className="text-[#00D4FF] text-[10px] font-black uppercase tracking-[0.4em]">{isRTL ? 'النخبة' : 'THE ELITE'}</div>
-                 <h2 className="text-6xl font-black uppercase tracking-tighter">{isRTL ? 'أفضل المزودين' : 'Top Operatives'}</h2>
+                 <h2 className="text-5xl font-black uppercase tracking-tighter">{isRTL ? 'أفضل المزودين' : 'Top Operatives'}</h2>
               </div>
               <motion.div
                 animate={{ opacity: [1, 0.5, 1], scale: [1, 1.05, 1] }}
@@ -342,7 +342,7 @@ export default function Home() {
               <div className="space-y-12">
                  <div className="space-y-4">
                     <div className="text-purple-500 text-[10px] font-black uppercase tracking-[0.4em]">{isRTL ? 'الذكاء السوقي' : 'MARKET INTELLIGENCE'}</div>
-                    <h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-none">{isRTL ? 'تحليلات' : 'STRATEGIC'}<br/>{isRTL ? 'استراتيجية' : 'INTEL'}</h2>
+                    <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">{isRTL ? 'تحليلات' : 'STRATEGIC'}<br/>{isRTL ? 'استراتيجية' : 'INTEL'}</h2>
                  </div>
                  <p className="text-gray-400 text-xl leading-relaxed max-w-md italic">
                     {isRTL ? 'تقارير معمقة من أفضل المحللين المعتمدين لدينا حول توجهات السوق الكبرى.' : 'In-depth reports from our top certified analysts on major market trends.'}

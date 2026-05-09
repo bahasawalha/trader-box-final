@@ -50,17 +50,17 @@ export default function EconomicCalendarTicker() {
       </div>
 
       {/* 🏃 Marquee Container */}
-      <div className="flex-1 relative flex items-center">
+      <div className="flex-1 relative flex items-center overflow-hidden">
         <motion.div 
-          className="flex whitespace-nowrap gap-12 items-center"
-          animate={{ x: isRTL ? ["100%", "-100%"] : ["0%", "-100%"] }}
+          className="flex whitespace-nowrap gap-12 items-center w-max"
+          animate={{ x: isRTL ? ["0%", "50%"] : ["0%", "-50%"] }}
           transition={{ 
-            duration: 250, 
+            duration: 40, // Fixed smooth duration
             repeat: Infinity, 
             ease: "linear" 
           }}
         >
-          {[...events, ...events, ...events].map((event, i) => (
+          {[...events, ...events].map((event, i) => (
             <div key={i} className="flex items-center gap-6 group/item">
               <div className="flex items-center gap-3">
                 <span className="text-[11px] font-black text-gray-200 uppercase tracking-wide">

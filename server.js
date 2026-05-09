@@ -1330,21 +1330,20 @@ app.get("/analyst/stats", authMiddleware, async (req, res) => {
 app.get("/admin/settings", authMiddleware, async (req, res) => {
   if (req.user.role !== 'ADMIN') return res.status(403).json({ error: "Access denied" });
   try {
-    // Use raw query because Prisma Client might not be generated with new models
-    let settings = await prisma.$queryRaw`SELECT * FROM AppSettings WHERE id = 'global' LIMIT 1`;
-    settings = settings[0];
+    let settings = await prisma.appSettings.findUnique({ where: { id: 'global' } });
     
     if (!settings) {
-      const now = new Date().toISOString();
-      await prisma.$executeRaw`INSERT INTO AppSettings (id, platformFee, updatedAt) VALUES ('global', 30, ${now})`;
-      settings = { id: "global", platformFee: 30, updatedAt: now };
+      settings = await prisma.appSettings.create({
+        data: { id: "global", platformFee: 30 }
+      });
     } else if (settings.platformFee < 0) {
-      // Auto-fix negative fee if it exists in DB
-      await prisma.$executeRaw`UPDATE AppSettings SET platformFee = 0 WHERE id = 'global'`;
-      settings.platformFee = 0;
+      settings = await prisma.appSettings.update({
+        where: { id: "global" },
+        data: { platformFee: 0 }
+      });
     }
     
-    const methods = await prisma.$queryRaw`SELECT * FROM PaymentMethod ORDER BY createdAt DESC`;
+    const methods = await prisma.paymentMethod.findMany({ orderBy: { createdAt: 'desc' } });
     const pairs = await prisma.pair.findMany({ orderBy: { symbol: 'asc' } });
     res.json({ settings, methods, pairs });
   } catch (error) { res.status(500).json({ error: error.message }); }
@@ -1391,8 +1390,11 @@ app.post("/admin/settings/fee", authMiddleware, async (req, res) => {
   }
 
   try {
-    const now = new Date().toISOString();
-    await prisma.$executeRaw`UPDATE AppSettings SET platformFee = ${fee}, updatedAt = ${now} WHERE id = 'global'`;
+    await prisma.appSettings.upsert({
+      where: { id: "global" },
+      update: { platformFee: fee },
+      create: { id: "global", platformFee: fee }
+    });
     res.json({ success: true });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
@@ -1400,17 +1402,18 @@ app.post("/admin/settings/fee", authMiddleware, async (req, res) => {
 app.post("/admin/settings/methods", authMiddleware, async (req, res) => {
   if (req.user.role !== 'ADMIN') return res.status(403).json({ error: "Access denied" });
   const { name, address } = req.body;
-  const id = crypto.randomUUID();
   try {
-    await prisma.$executeRaw`INSERT INTO PaymentMethod (id, name, address, isActive, createdAt) VALUES (${id}, ${name}, ${address}, 1, ${new Date().toISOString()})`;
-    res.json({ id, name, address });
+    const method = await prisma.paymentMethod.create({
+      data: { name, address, isActive: true }
+    });
+    res.json(method);
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.delete("/admin/settings/methods/:id", authMiddleware, async (req, res) => {
   if (req.user.role !== 'ADMIN') return res.status(403).json({ error: "Access denied" });
   try {
-    await prisma.$executeRaw`DELETE FROM PaymentMethod WHERE id = ${req.params.id}`;
+    await prisma.paymentMethod.delete({ where: { id: req.params.id } });
     res.json({ success: true });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
@@ -1418,7 +1421,7 @@ app.delete("/admin/settings/methods/:id", authMiddleware, async (req, res) => {
 // Public endpoint for users to get deposit methods
 app.get("/deposit/methods", async (req, res) => {
   try {
-    const methods = await prisma.$queryRaw`SELECT * FROM PaymentMethod WHERE isActive = 1`;
+    const methods = await prisma.paymentMethod.findMany({ where: { isActive: true } });
     res.json(methods);
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
