@@ -68,7 +68,7 @@ export default function WithdrawalsPage() {
                 <ArrowUpRight size={24} />
               </div>
               <div>
-                <p className="text-2xl font-mono font-bold">${w.amount.toFixed(2)}</p>
+                <p className="text-2xl font-mono font-bold">${Number(w.amount).toFixed(2)}</p>
                 <p className="text-xs text-gray-400 font-medium">{w.user?.email}</p>
               </div>
             </div>
