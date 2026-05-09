@@ -184,7 +184,7 @@ app.post("/auth/login", async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-app.post("/auth/logout", (req, res) => { res.clearCookie("token").json({ success: true }); });
+app.post("/auth/logout", (req, res) => { res.clearCookie("token", { httpOnly: true, sameSite: "none", secure: true }).json({ success: true }); });
 
 app.get("/me", authMiddleware, async (req, res) => {
   try {

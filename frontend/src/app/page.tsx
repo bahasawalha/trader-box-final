@@ -577,24 +577,24 @@ export default function Home() {
                    </div>
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-right rtl:text-right">
-                      <div className="space-y-8 p-10 bg-white/5 rounded-[40px] border border-white/5 hover:border-[#00D4FF]/20 transition-all group">
-                         <div className="w-14 h-14 rounded-2xl bg-[#00D4FF]/10 flex items-center justify-center text-[#00D4FF] group-hover:scale-110 transition-transform"><Target size={32} /></div>
+                      <div className="space-y-8 p-10 bg-white/5 rounded-[40px] border border-white/5 hover:border-[#00D4FF]/30 transition-all group shadow-xl">
+                         <div className="w-16 h-16 rounded-2xl bg-[#00D4FF]/10 flex items-center justify-center text-[#00D4FF] group-hover:scale-110 transition-transform"><Target size={32} /></div>
                          <div className="space-y-4">
-                            <h3 className="text-2xl font-black uppercase">{isRTL ? 'رؤيتنا' : 'OUR VISION'}</h3>
-                            <p className="text-gray-500 leading-relaxed text-sm">{isRTL ? 'بناء مجتمع تداول عربي أكثر شفافية واحترافية، حيث تصبح البيانات الدقيقة والثقة أساس كل قرار مالي.' : 'Building a transparent Arab trading community where accurate data is the foundation of every decision.'}</p>
+                            <h3 className="text-3xl font-black uppercase">{isRTL ? 'رؤيتنا' : 'OUR VISION'}</h3>
+                            <p className="text-gray-400 leading-relaxed text-base font-medium">{isRTL ? 'بناء مجتمع تداول عربي أكثر شفافية واحترافية، حيث تصبح البيانات الدقيقة والثقة أساس كل قرار مالي.' : 'Building a transparent Arab trading community where accurate data is the foundation of every decision.'}</p>
                          </div>
                       </div>
-                      <div className="space-y-8 p-10 bg-white/5 rounded-[40px] border border-white/5 hover:border-[#00D4FF]/20 transition-all group">
-                         <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform"><Rocket size={32} /></div>
+                      <div className="space-y-8 p-10 bg-white/5 rounded-[40px] border border-white/5 hover:border-blue-500/30 transition-all group shadow-xl">
+                         <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform"><Rocket size={32} /></div>
                          <div className="space-y-4">
-                            <h3 className="text-2xl font-black uppercase">{isRTL ? 'مهمتنا' : 'OUR MISSION'}</h3>
-                            <p className="text-gray-500 leading-relaxed text-sm">{isRTL ? 'توفير منصة ذكية وآمنة تمنح المستخدمين الأدوات والمعرفة اللازمة للنمو داخل الأسواق المالية بطريقة احترافية.' : 'Providing a smart and secure platform that empowers users with tools and knowledge to grow.'}</p>
+                            <h3 className="text-3xl font-black uppercase">{isRTL ? 'مهمتنا' : 'OUR MISSION'}</h3>
+                            <p className="text-gray-400 leading-relaxed text-base font-medium">{isRTL ? 'توفير منصة ذكية وآمنة تمنح المستخدمين الأدوات والمعرفة اللازمة للنمو داخل الأسواق المالية بطريقة احترافية.' : 'Providing a smart and secure platform that empowers users with tools and knowledge to grow.'}</p>
                          </div>
                       </div>
                    </div>
 
                    <div className="space-y-10">
-                      <h3 className="text-center text-xs font-black uppercase tracking-[0.5em] text-gray-500">{isRTL ? 'قيمنا الجوهرية' : 'OUR CORE VALUES'}</h3>
+                      <h3 className="text-center text-sm font-black uppercase tracking-[0.5em] text-[#00D4FF]">{isRTL ? 'قيمنا الجوهرية' : 'OUR CORE VALUES'}</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                          <AboutCard icon={<Lightbulb size={24} />} title={isRTL ? 'الابتكار' : 'Innovation'} desc={isRTL ? 'نطوّر حلولًا مالية حديثة تواكب تطور الأسواق والتكنولوجيا.' : 'Developing modern financial solutions.'} />
                          <AboutCard icon={<Flag size={24} />} title={isRTL ? 'الشفافية' : 'Transparency'} desc={isRTL ? 'نعتمد على الوضوح والمصداقية في عرض البيانات والنتائج.' : 'Relying on clarity and credibility.'} />
@@ -826,10 +826,10 @@ export default function Home() {
 
 function AboutCard({ icon, title, desc }: any) {
   return (
-    <div className="p-8 bg-white/5 rounded-3xl border border-white/5 space-y-4">
-       <div className="w-12 h-12 rounded-2xl bg-[#00D4FF]/10 flex items-center justify-center text-[#00D4FF] mx-auto">{icon}</div>
-       <div className="font-black text-[10px] uppercase tracking-widest">{title}</div>
-       <p className="text-gray-500 text-[10px] font-bold">{desc}</p>
+    <div className="p-8 bg-white/5 rounded-[32px] border border-white/5 space-y-6 hover:border-[#00D4FF]/30 transition-all group shadow-lg">
+       <div className="w-16 h-16 rounded-[24px] bg-[#00D4FF]/10 flex items-center justify-center text-[#00D4FF] mx-auto group-hover:scale-110 transition-transform">{icon}</div>
+       <div className="font-black text-lg uppercase tracking-widest">{title}</div>
+       <p className="text-gray-400 text-sm font-medium leading-relaxed">{desc}</p>
     </div>
   );
 }
